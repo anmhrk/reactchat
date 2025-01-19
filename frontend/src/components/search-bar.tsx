@@ -5,11 +5,15 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useTheme } from "next-themes";
 import { dark } from "@clerk/themes";
+import { toast } from "sonner";
+import { z } from "zod";
 
 export function SearchBar({ userId }: { userId: string | null }) {
   const { openSignIn } = useClerk();
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
+
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -21,7 +25,18 @@ export function SearchBar({ userId }: { userId: string | null }) {
 
     const formData = new FormData(e.target as HTMLFormElement);
     const url = formData.get("url") as string;
-    console.log(url);
+    const urlRegex = z
+      .string()
+      .regex(
+        /^https?:\/\/github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-._]+\/?$/,
+        "Please enter a valid GitHub repository URL",
+      )
+      .safeParse(url);
+
+    if (!urlRegex.success) {
+      toast.error("Please enter a valid GitHub repository URL");
+      return;
+    }
   };
 
   return (
