@@ -5,13 +5,16 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useTheme } from "next-themes";
 import { dark } from "@clerk/themes";
+import { useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
+import { useRouter } from "next/navigation";
 
 export function SearchBar({ userId }: { userId: string | null }) {
+  const [isLoading, setIsLoading] = useState(false);
   const { openSignIn } = useClerk();
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
+  const router = useRouter();
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -25,21 +28,11 @@ export function SearchBar({ userId }: { userId: string | null }) {
 
     const formData = new FormData(e.target as HTMLFormElement);
     const url = formData.get("url") as string;
-    const urlRegex = z
-      .string()
-      .regex(
-        /^https?:\/\/github\.com\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-._]+\/?$/,
-        "Please enter a valid GitHub repository URL",
-      )
-      .safeParse(url);
 
-    if (!urlRegex.success) {
-      toast.error("Please enter a valid GitHub repository URL");
-      return;
-    }
+    setIsLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/ingest`, {
+      const response = await fetch(`${BACKEND_URL}/api/validate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,10 +40,20 @@ export function SearchBar({ userId }: { userId: string | null }) {
         body: JSON.stringify({ url }),
       });
 
-      const data = (await response.json()) as { message: string };
-      toast.success(data.message);
+      const data = (await response.json()) as {
+        route_link: string;
+        detail?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(data.detail);
+      }
+
+      router.push(data.route_link);
     } catch (error) {
       toast.error((error as Error).message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -68,9 +71,10 @@ export function SearchBar({ userId }: { userId: string | null }) {
       />
       <Button
         type="submit"
+        disabled={isLoading}
         className="h-12 w-full px-6 font-mono font-bold md:w-auto"
       >
-        Search
+        {isLoading ? "Loading..." : "Search"}
       </Button>
     </form>
   );
