@@ -7,8 +7,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "~/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "RepoFlow",
-  description: "Actually understand open source GitHub repos",
+  title: "ReactChat | Easily chat with open source React apps",
+  description: "Easily chat with open source React apps",
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 

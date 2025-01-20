@@ -1,5 +1,5 @@
 import { SearchBar } from "~/components/search-bar";
-import { FaGithub } from "react-icons/fa";
+import { FaReact } from "react-icons/fa";
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { Header } from "~/components/header";
@@ -12,11 +12,11 @@ export default async function HomePage() {
       <Header userId={userId} />
       <div className="z-10 w-full max-w-3xl space-y-6 text-center">
         <div className="flex items-center justify-center space-x-4">
-          <FaGithub className="h-12 w-12" />
-          <h1 className="font-mono text-5xl font-bold">RepoFlow</h1>
+          <FaReact className="h-12 w-12 text-[#58C4DC]" />
+          <h1 className="font-mono text-5xl font-bold">ReactChat</h1>
         </div>
-        <p className="text-md font-mono md:text-xl dark:text-white/80">
-          Actually understand open source GitHub repos
+        <p className="text-md font-mono dark:text-white/80 md:text-xl">
+          Easily chat with open source React apps
         </p>
         <SearchBar userId={userId} />
       </div>

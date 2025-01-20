@@ -37,6 +37,21 @@ export function SearchBar({ userId }: { userId: string | null }) {
       toast.error("Please enter a valid GitHub repository URL");
       return;
     }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/ingest`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = (await response.json()) as { message: string };
+      toast.success(data.message);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
   };
 
   return (
