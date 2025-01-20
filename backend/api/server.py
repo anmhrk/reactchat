@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from api.routes import validate
+from api.routes import auth, ingest
 
 app = FastAPI()
 
@@ -28,4 +28,5 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
     )
 
 
-app.include_router(validate.router, prefix="/api")
+app.include_router(auth.router)
+app.include_router(ingest.router)

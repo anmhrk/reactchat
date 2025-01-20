@@ -13,7 +13,7 @@ class GithubUrl(BaseModel):
     url: str
 
 
-@router.post("/validate")
+@router.post("/ingest/validate")
 async def validate(request: GithubUrl):
     try:
         # Validating request URL

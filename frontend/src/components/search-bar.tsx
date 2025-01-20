@@ -33,7 +33,7 @@ export function SearchBar({ userId }: { userId: string | null }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/api/validate`, {
+      const response = await fetch(`${BACKEND_URL}/ingest/validate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -75,11 +75,7 @@ export function SearchBar({ userId }: { userId: string | null }) {
         disabled={isLoading}
         className="h-12 w-full px-6 font-mono font-bold md:w-auto md:min-w-[100px]"
       >
-        {isLoading ? (
-          <Loader2 className="!h-6 !w-6 animate-spin text-white dark:text-black" />
-        ) : (
-          "Search"
-        )}
+        {isLoading ? <Loader2 className="!h-6 !w-6 animate-spin" /> : "Search"}
       </Button>
     </form>
   );
