@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from dotenv import load_dotenv
 from svix.webhooks import Webhook, WebhookVerificationError
 import os
 import json
+from sqlalchemy.orm import Session
+from db.config import get_db
+from db.models import User
 
 load_dotenv()
 
@@ -14,7 +17,7 @@ if not CLERK_WEBHOOK_SECRET:
 
 
 @router.post("/auth/webhook")
-async def handle_auth_webhook(request: Request):
+async def handle_auth_webhook(request: Request, db: Session = Depends(get_db)):
     body = await request.body()
 
     headers = request.headers
@@ -49,6 +52,16 @@ async def handle_auth_webhook(request: Request):
 
     if event_type == "user.created":
         user_id = event_data["id"]
-        print(f"User created: {user_id}")
+        email = event_data["email_addresses"][0]["email_address"]
+        name = event_data["first_name"]
+
+        db_user = User(id=user_id, email=email, name=name)
+        db.add(db_user)
+        db.commit()
+
+    if event_type == "user.deleted":
+        user_id = event_data["id"]
+        db.query(User).filter(User.id == user_id).delete()
+        db.commit()
 
     return {"message": "Webhook processed successfully"}
