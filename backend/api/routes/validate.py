@@ -48,6 +48,8 @@ async def validate(request: GithubUrl):
                 detail="Not a React app",
             )
 
-        return {"route_link": f"/repo/{match.group(1)}/{match.group(2)}"}
+        # Todo: Check for repo token count and if it's too large, return error
+
+        return {"message": f"/repo/{match.group(1)}/{match.group(2)}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

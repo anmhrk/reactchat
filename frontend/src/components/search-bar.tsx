@@ -8,6 +8,7 @@ import { dark } from "@clerk/themes";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export function SearchBar({ userId }: { userId: string | null }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,15 +42,15 @@ export function SearchBar({ userId }: { userId: string | null }) {
       });
 
       const data = (await response.json()) as {
-        route_link: string;
-        detail?: string;
+        message: string;
+        error?: string;
       };
 
       if (!response.ok) {
-        throw new Error(data.detail);
+        throw new Error(data.error);
       }
 
-      router.push(data.route_link);
+      router.push(data.message);
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
@@ -72,9 +73,13 @@ export function SearchBar({ userId }: { userId: string | null }) {
       <Button
         type="submit"
         disabled={isLoading}
-        className="h-12 w-full px-6 font-mono font-bold md:w-auto"
+        className="h-12 w-full px-6 font-mono font-bold md:w-auto md:min-w-[100px]"
       >
-        {isLoading ? "Loading..." : "Search"}
+        {isLoading ? (
+          <Loader2 className="!h-6 !w-6 animate-spin text-white dark:text-black" />
+        ) : (
+          "Search"
+        )}
       </Button>
     </form>
   );
