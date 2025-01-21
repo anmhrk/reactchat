@@ -19,7 +19,7 @@ export default function RootLayout({
     <ClerkProvider afterSignOutUrl="/">
       <html
         lang="en"
-        className={`${GeistSans.variable}`}
+        className={`${GeistSans.variable} overflow-hidden`}
         suppressHydrationWarning
       >
         <body>

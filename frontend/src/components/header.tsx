@@ -1,20 +1,28 @@
 "use client";
 
 import { dark } from "@clerk/themes";
-import { useClerk, UserButton } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import { useTheme } from "next-themes";
 import { Button } from "./ui/button";
 import { Sun, Moon } from "lucide-react";
+import type { UserInfo } from "~/lib/types";
+import Image from "next/image";
 
-export function Header({ userId }: { userId: string | null }) {
+export function Header({ userInfo }: { userInfo: UserInfo }) {
   const { openSignIn } = useClerk();
   const { theme, setTheme } = useTheme();
   const isDarkMode = theme === "dark";
 
   return (
     <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
-      {userId ? (
-        <UserButton appearance={{ baseTheme: isDarkMode ? dark : undefined }} />
+      {userInfo.id ? (
+        <Image
+          src={userInfo.imageUrl ?? ""}
+          alt="User avatar"
+          width={32}
+          height={32}
+          className="rounded-full object-cover"
+        />
       ) : (
         <Button
           onClick={() =>
