@@ -12,6 +12,7 @@ export default async function HomePage() {
     fullName: user?.fullName ?? null,
     username: user?.username ?? null,
     imageUrl: user?.imageUrl ?? null,
+    email: user?.primaryEmailAddress?.emailAddress ?? null,
   };
 
   return (

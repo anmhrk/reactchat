@@ -7,6 +7,8 @@ import { Button } from "./ui/button";
 import { Sun, Moon } from "lucide-react";
 import type { UserInfo } from "~/lib/types";
 import Image from "next/image";
+import { DropdownMenu, DropdownMenuTrigger } from "./ui/dropdown-menu";
+import { UserDropdown } from "./user-dropdown";
 
 export function Header({ userInfo }: { userInfo: UserInfo }) {
   const { openSignIn } = useClerk();
@@ -16,13 +18,18 @@ export function Header({ userInfo }: { userInfo: UserInfo }) {
   return (
     <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
       {userInfo.id ? (
-        <Image
-          src={userInfo.imageUrl ?? ""}
-          alt="User avatar"
-          width={32}
-          height={32}
-          className="rounded-full object-cover"
-        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Image
+              src={userInfo.imageUrl ?? ""}
+              alt="User avatar"
+              width={32}
+              height={32}
+              className="rounded-full object-cover hover:cursor-pointer"
+            />
+          </DropdownMenuTrigger>
+          <UserDropdown userInfo={userInfo} />
+        </DropdownMenu>
       ) : (
         <Button
           onClick={() =>
