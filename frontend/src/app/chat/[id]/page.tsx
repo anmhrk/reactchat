@@ -1,20 +1,19 @@
 import FileTree from "~/components/core/file-tree";
 import Code from "~/components/core/code";
 import Chat from "~/components/core/chat";
-import Sidebar from "~/components/core/sidebar";
 
 export default async function Page({
   params,
 }: {
-  params: Promise<{ owner: string; name: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { owner, name } = await params;
+  const { id } = await params;
 
   return (
     <main className="flex h-screen">
-      {/* <FileTree />
+      <FileTree />
       <Code />
-      <Chat /> */}
+      <Chat />
     </main>
   );
 }

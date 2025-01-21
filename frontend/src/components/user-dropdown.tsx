@@ -12,8 +12,8 @@ import { Moon, Sun } from "lucide-react";
 
 export function UserDropdown({ userInfo }: { userInfo: UserInfo }) {
   const { signOut } = useAuth();
-  const params = useParams<{ owner: string; name: string }>();
-  const isRepoPage = !!params.owner && !!params.name;
+  const params = useParams<{ id: string }>();
+  const isChatPage = !!params.id;
   const { theme, setTheme } = useTheme();
 
   return (
@@ -32,7 +32,7 @@ export function UserDropdown({ userInfo }: { userInfo: UserInfo }) {
 
       <DropdownMenuSeparator className="my-1 bg-zinc-200 dark:bg-zinc-800" />
 
-      {isRepoPage && (
+      {/* {isChatPage && (
         <DropdownMenuItem
           onClick={(e) => {
             e.preventDefault();
@@ -45,7 +45,7 @@ export function UserDropdown({ userInfo }: { userInfo: UserInfo }) {
           <Moon className="absolute mr-2 h-6 w-6 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           {theme === "dark" ? "Toggle light mode" : "Toggle dark mode"}
         </DropdownMenuItem>
-      )}
+      )} */}
 
       <DropdownMenuItem
         onClick={() => signOut()}
