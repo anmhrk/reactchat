@@ -12,8 +12,8 @@ class User(Base):
     name = Column(String)
 
 
-class Repo(Base):
-    __tablename__ = "repos"
+class Chat(Base):
+    __tablename__ = "chats"
 
     id = Column(String, primary_key=True, index=True)
     github_url = Column(String, unique=True, index=True)

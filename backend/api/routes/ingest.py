@@ -7,7 +7,7 @@ import requests
 import uuid
 from sqlalchemy.orm import Session
 from db.config import get_db
-from db.models import Repo
+from db.models import Chat
 
 
 router = APIRouter()
@@ -54,23 +54,26 @@ async def validate(request: IngestRequest, db: Session = Depends(get_db)):
             )
 
         # Todo: Check for repo token count and if it's too large, return error
+        # Todo: Check for monorepo too and only count frontend
 
         existing_repo = (
-            db.query(Repo)
-            .filter(Repo.github_url == clean_url, Repo.user_id == request.userId)
+            db.query(Chat)
+            .filter(Chat.github_url == clean_url, Chat.user_id == request.userId)
             .first()
         )
 
+        id = existing_repo.id if existing_repo else str(uuid.uuid4().hex[:8])
+
         if not existing_repo:
-            repo = Repo(
-                id=str(uuid.uuid4()),
+            chat = Chat(
+                id=id,
                 github_url=clean_url,
                 user_id=request.userId,
             )
-        db.add(repo)
+        db.add(chat)
         db.commit()
 
-        return {"message": f"/repo/{match.group(1)}/{match.group(2)}"}
+        return {"message": f"/chat/{id}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
