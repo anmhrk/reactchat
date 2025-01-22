@@ -7,10 +7,12 @@ import type { FileNode } from "~/lib/types";
 import FileTreeItem from "./file-tree-item";
 import { Skeleton } from "~/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
+import { FaReact } from "react-icons/fa";
+import Link from "next/link";
 
 export default function FileTree() {
   const [tree, setTree] = useState<FileNode[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [repoName, setRepoName] = useState("");
   const params = useParams<{ id: string }>();
@@ -34,7 +36,7 @@ export default function FileTree() {
         if (cachedRepo) {
           buildTree(cachedRepo.files);
           getRepoName(cachedRepo.github_url);
-          setLoading(false);
+          setIsLoading(false);
           return;
         }
 
@@ -52,7 +54,7 @@ export default function FileTree() {
       } catch (error) {
         console.error(error);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     }
 
@@ -116,17 +118,21 @@ export default function FileTree() {
   }
 
   return (
-    <main className="hidden flex-col border-r border-zinc-200 bg-background dark:border-zinc-800 dark:bg-background md:block md:w-[15%]">
-      {loading ? (
+    <main className="hidden flex-col border-r border-zinc-200 bg-[#FAFAFA] dark:border-zinc-800 dark:bg-[#0A0A0A] md:block md:w-[15%]">
+      {isLoading ? (
         <Loading />
       ) : (
         <>
           {repoName && (
-            <div className="border-b border-zinc-200 p-3 dark:border-zinc-800">
+            <Link
+              href={`/chat/${params.id}`}
+              className="flex items-center gap-2 border-b border-zinc-200 p-3 dark:border-zinc-800"
+            >
+              <FaReact className="!h-5 !w-5 text-[#58C4DC]" />
               <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-200">
                 {repoName}
               </h2>
-            </div>
+            </Link>
           )}
 
           <ScrollArea className="h-full">
