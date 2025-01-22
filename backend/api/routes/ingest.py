@@ -70,8 +70,8 @@ async def validate(request: IngestRequest, db: Session = Depends(get_db)):
                 github_url=clean_url,
                 user_id=request.userId,
             )
-        db.add(chat)
-        db.commit()
+            db.add(chat)
+            db.commit()
 
         return {"message": f"/chat/{id}"}
     except Exception as e:

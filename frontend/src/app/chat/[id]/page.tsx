@@ -8,6 +8,7 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // add check here to see if valid chat id
 
   return (
     <main className="flex h-screen">
