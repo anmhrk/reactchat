@@ -2,13 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+.monaco-editor-container {
+  transition: background-color 0.3s ease;
+}
+
 .monaco-editor-container .monaco-editor .scrollbar .slider {
-  border-radius: 12px !important;
+  border-radius: 10px !important;
 }
 
 .monaco-editor-container .monaco-editor .scrollbar.vertical,
 .monaco-editor-container .monaco-editor .scrollbar.horizontal {
-  border-radius: 12px !important;
+  border-radius: 10px !important;
 }
 
 .monaco-editor-container ::-webkit-scrollbar {
