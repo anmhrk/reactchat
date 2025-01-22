@@ -1,21 +1,28 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getRepo, setRepo } from "~/lib/db";
 import type { FileNode } from "~/lib/types";
-import { Suspense } from "react";
+import FileTreeItem from "./file-tree-item";
 import { Skeleton } from "~/components/ui/skeleton";
-import { cn } from "~/lib/utils";
+import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
 
 export default function FileTree() {
   const [tree, setTree] = useState<FileNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [repoName, setRepoName] = useState("");
   const params = useParams<{ id: string }>();
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const file = searchParams.get("file");
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  const getRepoName = (url: string) => {
+    const repoName = url.split("/").pop();
+    setRepoName(repoName ?? "");
+  };
 
   useEffect(() => {
     async function loadRepo() {
@@ -26,6 +33,7 @@ export default function FileTree() {
         const cachedRepo = await getRepo(params.id);
         if (cachedRepo) {
           buildTree(cachedRepo.files);
+          getRepoName(cachedRepo.github_url);
           setLoading(false);
           return;
         }
@@ -40,6 +48,7 @@ export default function FileTree() {
 
         await setRepo(params.id, data);
         buildTree(data.files);
+        getRepoName(data.github_url);
       } catch (error) {
         console.error(error);
       } finally {
@@ -48,7 +57,13 @@ export default function FileTree() {
     }
 
     void loadRepo();
-  }, [params.id]);
+  }, [params.id, BACKEND_URL]);
+
+  useEffect(() => {
+    if (file) {
+      setSelectedFile(file);
+    }
+  }, [file]);
 
   function buildTree(files: { path: string; content: string }[]) {
     const root: FileNode[] = [];
@@ -81,29 +96,109 @@ export default function FileTree() {
       });
     });
 
-    setTree(root);
+    const sortTree = (nodes: FileNode[]): FileNode[] => {
+      return nodes
+        .sort((a, b) => {
+          if (a.type === b.type) {
+            return a.name.localeCompare(b.name);
+          }
+          return a.type === "directory" ? -1 : 1;
+        })
+        .map((node) => {
+          if (node.children) {
+            node.children = sortTree(node.children);
+          }
+          return node;
+        });
+    };
+
+    setTree(sortTree(root));
   }
 
-  const renderNode = (node: FileNode, level = 0) => (
-    <div key={node.path} style={{ paddingLeft: `${level * 12}px` }}>
-      <button
-        onClick={() => setSelectedFile(node.path)}
-        className={cn(
-          "flex w-full items-center rounded px-2 py-1 text-left text-sm hover:bg-zinc-200 dark:hover:bg-zinc-800",
-          selectedFile === node.path && "bg-zinc-200 dark:bg-zinc-800",
-        )}
-      >
-        {node.name}
-      </button>
-      {node.children?.map((child) => renderNode(child, level + 1))}
-    </div>
-  );
-
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <main className="hidden flex-col border-r border-zinc-600 bg-[#FAFAFA] dark:bg-background md:block md:w-[12%]">
-        {tree.map((node) => renderNode(node))}
-      </main>
-    </Suspense>
+    <main className="hidden flex-col border-r border-zinc-200 bg-background dark:border-zinc-800 dark:bg-background md:block md:w-[15%]">
+      {loading ? (
+        <Loading />
+      ) : (
+        <>
+          {repoName && (
+            <div className="border-b border-zinc-200 p-3 dark:border-zinc-800">
+              <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                {repoName}
+              </h2>
+            </div>
+          )}
+
+          <ScrollArea className="h-full">
+            <ul className="p-2">
+              {tree.map((node) => (
+                <FileTreeItem
+                  key={node.path}
+                  node={node}
+                  selectedFile={selectedFile}
+                  onSelectFile={setSelectedFile}
+                />
+              ))}
+            </ul>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </>
+      )}
+    </main>
+  );
+}
+
+function Loading() {
+  return (
+    <div className="space-y-3 p-3">
+      {/* Repository name skeleton */}
+      <div className="mb-4">
+        <Skeleton className="h-4 w-[60%]" />
+      </div>
+
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={`skeleton-group-${index}`} className="space-y-4">
+          {/* First level */}
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-3.5 w-3.5" />
+            <Skeleton className="h-3.5 w-[120px]" />
+          </div>
+
+          {/* Nested items */}
+          <div className="space-y-2.5 pl-5">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3.5 w-3.5" />
+              <Skeleton className="h-3.5 w-[100px]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3.5 w-3.5" />
+              <Skeleton className="h-3.5 w-[80px]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3.5 w-3.5" />
+              <Skeleton className="h-3.5 w-[95px]" />
+            </div>
+          </div>
+
+          {/* Another top level item */}
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-3.5 w-3.5" />
+            <Skeleton className="h-3.5 w-[110px]" />
+          </div>
+
+          {/* More nested items */}
+          <div className="space-y-2.5 pl-5">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3.5 w-3.5" />
+              <Skeleton className="h-3.5 w-[85px]" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-3.5 w-3.5" />
+              <Skeleton className="h-3.5 w-[70px]" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
