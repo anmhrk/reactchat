@@ -73,6 +73,7 @@ export default function ChatInput() {
       />
       <Button
         type="submit"
+        disabled={!input.trim()}
         size="icon"
         variant="outline"
         className={cn(
@@ -85,7 +86,9 @@ export default function ChatInput() {
         <FaArrowUp
           className={cn(
             "h-4 w-4",
-            input.trim() ? "text-white" : "text-black dark:text-white",
+            input.trim()
+              ? "text-white dark:text-black"
+              : "text-black dark:text-white",
           )}
         />
       </Button>

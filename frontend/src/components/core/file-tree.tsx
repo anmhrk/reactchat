@@ -7,24 +7,16 @@ import type { FileNode } from "~/lib/types";
 import FileTreeItem from "./file-tree-item";
 import { Skeleton } from "~/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
-import { FaReact } from "react-icons/fa";
-import Link from "next/link";
 
 export default function FileTree() {
   const [tree, setTree] = useState<FileNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [repoName, setRepoName] = useState("");
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const file = searchParams.get("file");
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-  const getRepoName = (url: string) => {
-    const repoName = url.split("/").pop();
-    setRepoName(repoName ?? "");
-  };
 
   useEffect(() => {
     async function loadRepo() {
@@ -35,7 +27,6 @@ export default function FileTree() {
         const cachedRepo = await getRepo(params.id);
         if (cachedRepo) {
           buildTree(cachedRepo.files);
-          getRepoName(cachedRepo.github_url);
           setIsLoading(false);
           return;
         }
@@ -50,7 +41,6 @@ export default function FileTree() {
 
         await setRepo(params.id, data);
         buildTree(data.files);
-        getRepoName(data.github_url);
       } catch (error) {
         console.error(error);
       } finally {
@@ -118,25 +108,13 @@ export default function FileTree() {
   }
 
   return (
-    <main className="hidden flex-col border-r border-zinc-200 bg-[#FAFAFA] dark:border-zinc-800 dark:bg-[#0A0A0A] md:block md:w-[15%]">
+    <main className="hidden w-[14%] flex-col border-r border-zinc-200 bg-[#F3F3F3] dark:border-zinc-800 dark:bg-[#0F0F10] md:flex">
       {isLoading ? (
         <Loading />
       ) : (
         <>
-          {repoName && (
-            <Link
-              href={`/chat/${params.id}`}
-              className="flex items-center gap-2 border-b border-zinc-200 p-3 dark:border-zinc-800"
-            >
-              <FaReact className="!h-5 !w-5 text-[#58C4DC]" />
-              <h2 className="truncate text-sm font-semibold text-zinc-800 dark:text-zinc-200">
-                {repoName}
-              </h2>
-            </Link>
-          )}
-
           <ScrollArea className="h-full">
-            <ul className="p-2">
+            <ul className="px-3 py-2 pb-8 pt-3">
               {tree.map((node) => (
                 <FileTreeItem
                   key={node.path}
@@ -156,12 +134,7 @@ export default function FileTree() {
 
 function Loading() {
   return (
-    <div className="space-y-3 p-3">
-      {/* Repository name skeleton */}
-      <div className="mb-4">
-        <Skeleton className="h-4 w-[60%]" />
-      </div>
-
+    <div className="space-y-2 p-3">
       {Array.from({ length: 3 }).map((_, index) => (
         <div key={`skeleton-group-${index}`} className="space-y-4">
           {/* First level */}

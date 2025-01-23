@@ -7,7 +7,7 @@ import { UserDropdown } from "../user-dropdown";
 
 export default function ChatNav({ userInfo }: { userInfo: UserInfo }) {
   return (
-    <main className="flex items-center justify-end border-b border-zinc-200 p-1.5 dark:border-zinc-800">
+    <main className="flex items-center justify-end px-2 py-1.5">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Image

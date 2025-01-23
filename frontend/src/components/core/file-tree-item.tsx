@@ -5,6 +5,7 @@ import type { FileNode } from "~/lib/types";
 import { FaChevronRight } from "react-icons/fa";
 import {
   FaFolder,
+  FaFolderOpen,
   FaFile,
   FaInfoCircle,
   FaGitAlt,
@@ -15,7 +16,6 @@ import { SiTypescript, SiJavascript, SiNextdotjs } from "react-icons/si";
 import { FaReact } from "react-icons/fa";
 import { VscJson } from "react-icons/vsc";
 import { cn } from "~/lib/utils";
-import { Button } from "~/components/ui/button";
 import { useParams, useRouter } from "next/navigation";
 
 const ICON_MAP = {
@@ -39,7 +39,7 @@ const ICON_COLORS = {
   ".js": "text-[#FFCA27]",
   ".mjs": "text-[#FFCA27]",
   ".jsx": "text-[#58C4DC]",
-  ".json": "text-gray-500",
+  ".json": "text-black dark:text-white/80",
   ".md": "text-[#42A5F5]",
   ".gitignore": "text-[#E64A19]",
   ".html": "text-[#FFCA27]",
@@ -52,10 +52,12 @@ export default function FileTreeItem({
   node,
   selectedFile,
   onSelectFile,
+  level = 0,
 }: {
   node: FileNode;
   selectedFile: string | null;
   onSelectFile: (path: string) => void;
+  level?: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const params = useParams<{ id: string }>();
@@ -63,14 +65,18 @@ export default function FileTreeItem({
 
   const getFileIcon = () => {
     if (node.type === "directory") {
-      return <FaFolder className="!h-5 !w-5 text-sky-500" />;
+      return isOpen ? (
+        <FaFolderOpen className="h-4 w-4 shrink-0 text-[#DCB67A]" />
+      ) : (
+        <FaFolder className="h-4 w-4 shrink-0 text-[#DCB67A]" />
+      );
     }
 
-    // Checks for exact file name match first (for next.config.ts/js)
+    // Checks for exact file name match first
     if (node.name in ICON_MAP) {
       const Icon = ICON_MAP[node.name as keyof typeof ICON_MAP];
       const colorClass = ICON_COLORS[node.name as keyof typeof ICON_COLORS];
-      return <Icon className={`ml-[22px] !h-5 !w-5 ${colorClass}`} />;
+      return <Icon className={`h-4 w-4 shrink-0 ${colorClass}`} />;
     }
 
     // Checks for file extension match
@@ -78,19 +84,24 @@ export default function FileTreeItem({
     if (extension in ICON_MAP) {
       const Icon = ICON_MAP[extension as keyof typeof ICON_MAP];
       const colorClass = ICON_COLORS[extension as keyof typeof ICON_COLORS];
-      return <Icon className={`ml-[22px] !h-5 !w-5 ${colorClass}`} />;
+      return <Icon className={`h-4 w-4 shrink-0 ${colorClass}`} />;
     }
 
-    // Default file icon if no match found
-    return (
-      <FaFile className="ml-[22px] !h-5 !w-5 text-gray-500 dark:text-gray-400" />
-    );
+    return <FaFile className="h-4 w-4 shrink-0 text-[#8C8C8C]" />;
   };
 
   return (
-    <li key={node.path}>
-      <Button
-        variant="ghost"
+    <li className="relative">
+      {/* Indent guides */}
+      {level > 0 && (
+        <div
+          className="absolute left-0 h-full w-px bg-zinc-200 dark:bg-zinc-800"
+          style={{ left: `${level * 12}px` }}
+        />
+      )}
+
+      <div
+        role="button"
         onClick={() => {
           if (node.type === "file") {
             onSelectFile(node.path);
@@ -100,32 +111,37 @@ export default function FileTreeItem({
           }
         }}
         className={cn(
-          "h-8 w-full justify-start gap-1.5 rounded-sm px-2 py-1 text-left text-sm font-normal transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800/50",
-          selectedFile === node.path && "bg-zinc-200 dark:bg-zinc-800",
-          "focus-visible:ring-1 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300",
+          "group flex h-6 items-center gap-1 rounded-sm px-2 py-0.5",
+          "hover:bg-zinc-200 dark:hover:bg-zinc-800/50",
+          selectedFile === node.path && "bg-zinc-300 dark:bg-zinc-700/50",
+          "relative",
+          { "pl-[calc(12px_*_var(--level)_+_8px)]": level > 0 },
         )}
+        style={{ "--level": level } as React.CSSProperties}
       >
         {node.type === "directory" && (
           <FaChevronRight
             className={cn(
-              "h-3.5 w-3.5 text-zinc-500/80 transition-transform dark:text-zinc-400",
+              "h-3 w-3 shrink-0 text-zinc-400 transition-transform",
               isOpen && "rotate-90",
             )}
           />
         )}
         {getFileIcon()}
-        <span className="truncate text-zinc-700 dark:text-zinc-300">
+        <span className="truncate text-sm text-zinc-700 dark:text-zinc-300">
           {node.name}
         </span>
-      </Button>
+      </div>
+
       {isOpen && node.children && (
-        <ul className="pl-3 pt-0.5">
+        <ul>
           {node.children.map((child) => (
             <FileTreeItem
               key={child.path}
               node={child}
               selectedFile={selectedFile}
               onSelectFile={onSelectFile}
+              level={level + 1}
             />
           ))}
         </ul>

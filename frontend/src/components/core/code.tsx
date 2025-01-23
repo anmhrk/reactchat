@@ -4,13 +4,14 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 import { Editor as MonacoEditor, type Monaco } from "@monaco-editor/react";
-import { FaChevronRight, FaReact } from "react-icons/fa";
+import { FaReact, FaChevronRight } from "react-icons/fa";
 import { getRepo } from "~/lib/db";
 import { Skeleton } from "../ui/skeleton";
 import { useClerk } from "@clerk/nextjs";
+import Link from "next/link";
 
 export default function Code() {
   const params = useParams<{ id: string }>();
@@ -21,46 +22,20 @@ export default function Code() {
   const clerk = useClerk();
 
   const [code, setCode] = useState<string>("");
+  const [repoName, setRepoName] = useState<string>("");
   const [language, setLanguage] = useState<string>("typescript");
   const [isLoading, setIsLoading] = useState(true);
+  const [shouldTruncate, setShouldTruncate] = useState(false);
+  const pathContainerRef = useRef<HTMLDivElement>(null);
 
   const beforeMount = (monaco: Monaco) => {
     monaco.editor.defineTheme("custom-dark", {
       base: "vs-dark",
       inherit: true,
-      rules: [
-        { token: "comment", foreground: "6A9955" },
-        { token: "keyword", foreground: "569CD6", fontStyle: "bold" },
-        { token: "string", foreground: "CE9178" },
-        { token: "number", foreground: "B5CEA8" },
-        { token: "regexp", foreground: "D16969" },
-        { token: "type", foreground: "4EC9B0" },
-        { token: "class", foreground: "4EC9B0", fontStyle: "bold" },
-        { token: "interface", foreground: "4EC9B0", fontStyle: "bold" },
-        { token: "function", foreground: "DCDCAA" },
-        { token: "variable", foreground: "9CDCFE" },
-        { token: "constant", foreground: "4FC1FF" },
-      ],
+      rules: [],
       colors: {
-        "editor.background": "#0F0F10",
+        "editor.background": "#09090B",
         "editor.foreground": "#D4D4D4",
-        "editor.lineHighlightBackground": "#1F1F1F",
-        "editor.lineHighlightBorder": "#282828",
-        "editor.selectionBackground": "#264F78",
-        "editor.selectionHighlightBackground": "#264F7844",
-        "editor.findMatchBackground": "#515C6A",
-        "editor.findMatchHighlightBackground": "#515C6A44",
-        "editorLineNumber.foreground": "#6B7280",
-        "editorLineNumber.activeForeground": "#D4D4D4",
-        "editorCursor.foreground": "#FFFFFF",
-        "editorIndentGuide.background": "#404040",
-        "editorIndentGuide.activeBackground": "#707070",
-        "editorRuler.foreground": "#404040",
-        "editorBracketMatch.background": "#4C4C4C",
-        "editorBracketMatch.border": "#6B7280",
-        "scrollbarSlider.background": "#4E4E4E80",
-        "scrollbarSlider.hoverBackground": "#646464B3",
-        "scrollbarSlider.activeBackground": "#646464B3",
       },
     });
 
@@ -82,6 +57,8 @@ export default function Code() {
 
       try {
         const repo = await getRepo(params.id);
+        const name = repo?.github_url.split("/").pop()?.split(".")[0];
+        setRepoName(name ?? "");
         if (!repo) {
           setIsLoading(false);
           return;
@@ -133,111 +110,151 @@ export default function Code() {
     void loadCode();
   }, [file, params.id]);
 
-  // Change this to always open readme.md instead if no file is selected
-  if (!file) {
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (pathContainerRef.current) {
+        const isOverflowing =
+          pathContainerRef.current.scrollWidth >
+          pathContainerRef.current.clientWidth;
+        setShouldTruncate(isOverflowing);
+      }
+    };
+
+    const timeoutId = setTimeout(checkOverflow, 0);
+
+    window.addEventListener("resize", checkOverflow);
+    return () => {
+      window.removeEventListener("resize", checkOverflow);
+      clearTimeout(timeoutId);
+    };
+  }, [file, code]);
+
+  if (isLoading && file) {
     return (
-      <main className="hidden flex-1 items-center justify-center border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0F0F10] md:flex">
-        <div className="space-y-3 text-center">
-          <FaReact className="mx-auto h-10 w-10 text-zinc-400 dark:text-zinc-500" />
-          <div className="space-y-1">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              No file selected
-            </p>
+      <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#09090B] md:block">
+        <div className="flex flex-col">
+          <div className="px-4 py-2">
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="space-y-3 p-4">
+            <Skeleton className="h-3.5 w-2/3" />
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-3.5 w-3/4" />
+            <Skeleton className="h-3.5 w-1/3" />
           </div>
         </div>
       </main>
     );
   }
 
-  if (isLoading) {
+  const renderPath = (path: string) => {
+    const parts = path.split("/");
+    if (!shouldTruncate || parts.length <= 4) {
+      return parts.map((part, index) => (
+        <span key={index} className="flex items-center">
+          {index > 0 && <FaChevronRight className="mx-1 h-3 w-3" />}
+          <span>{part}</span>
+        </span>
+      ));
+    }
+
     return (
-      <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0F0F10] md:block">
-        <div className="space-y-3 p-4">
-          <div className="flex items-center space-x-2">
-            <Skeleton className="h-4 w-4" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-4 w-1/3" />
-          </div>
-        </div>
-      </main>
+      <>
+        <span className="flex items-center">
+          <span>{parts[0]}</span>
+          <FaChevronRight className="mx-1 h-3 w-3" />
+          <span>{parts[1]}</span>
+          <FaChevronRight className="mx-1 h-3 w-3" />
+          <span>{parts[2]}</span>
+        </span>
+        <span className="flex items-center">
+          <FaChevronRight className="mx-1 h-3 w-3" />
+          <span className="text-zinc-400">...</span>
+          <FaChevronRight className="mx-1 h-3 w-3" />
+          <span>{parts[parts.length - 1]}</span>
+        </span>
+      </>
     );
-  }
+  };
 
   return (
-    <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0F0F10] md:block">
-      <div className="flex h-screen flex-col">
-        <div className="flex items-center border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-          <FaChevronRight className="mr-2 h-4 w-4 text-zinc-400 dark:text-zinc-500" />
-          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            {file}
-          </span>
+    <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#09090B] md:block">
+      {!file ? (
+        <div className="flex h-screen flex-col items-center justify-center space-y-3 text-center">
+          <FaReact className="mx-auto h-24 w-24 text-[#58C4DC]" />
+          <p className="text-md text-zinc-500 dark:text-zinc-400">
+            Select a file to view and interact with the code
+          </p>
         </div>
-        <div className="monaco-editor-container flex-1">
-          {clerk.loaded && (
-            <MonacoEditor
-              height="100%"
-              language={language}
-              theme={isDarkMode ? "custom-dark" : "light"}
-              value={code}
-              beforeMount={beforeMount}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                scrollBeyondLastLine: false,
-                fontSize: 13,
-                fontLigatures: true,
-                lineNumbers: "on",
-                renderLineHighlight: "all",
-                wordWrap: "on",
-                automaticLayout: true,
-                domReadOnly: true,
-                padding: {
-                  top: 16,
-                  bottom: 16,
-                },
-                lineNumbersMinChars: 3,
-                glyphMargin: false,
-                folding: true,
-                foldingHighlight: true,
-                showFoldingControls: "mouseover",
-                matchBrackets: "always",
-                colorDecorators: true,
-                contextmenu: false,
-                mouseWheelZoom: false,
-                rulers: [80],
-                roundedSelection: true,
-                scrollbar: {
-                  vertical: "visible",
-                  horizontal: "visible",
-                  verticalScrollbarSize: 8,
-                  horizontalScrollbarSize: 8,
-                  verticalSliderSize: 8,
-                  horizontalSliderSize: 8,
-                  useShadows: false,
-                  verticalHasArrows: false,
-                  horizontalHasArrows: false,
-                  arrowSize: 0,
-                },
-                smoothScrolling: true,
-                cursorBlinking: "solid",
-                cursorSmoothCaretAnimation: "on",
-                renderWhitespace: "selection",
-                guides: {
-                  indentation: true,
-                  bracketPairs: true,
-                },
-                occurrencesHighlight: "off",
-                renderValidationDecorations: "off",
-              }}
-            />
-          )}
+      ) : (
+        <div className="flex h-screen flex-col">
+          <div className="flex min-w-0 items-center px-4 pt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            <div
+              className="flex w-0 min-w-0 flex-1 overflow-x-auto whitespace-nowrap"
+              ref={pathContainerRef}
+            >
+              <Link
+                href={`/chat/${params.id}`}
+                className="flex-shrink-0 font-semibold text-black dark:text-white/80 dark:hover:text-white/100"
+              >
+                {repoName}
+              </Link>
+              <p className="mx-2 flex-shrink-0 text-black dark:text-white/80">
+                /
+              </p>
+              {renderPath(file)}
+            </div>
+          </div>
+          <div className="monaco-editor-container flex-1">
+            {clerk.loaded && (
+              <MonacoEditor
+                height="100%"
+                language={language}
+                theme={isDarkMode ? "custom-dark" : "light"}
+                value={code}
+                beforeMount={beforeMount}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  fontSize: 13,
+                  fontLigatures: true,
+                  lineNumbers: "on",
+                  renderLineHighlight: "all",
+                  wordWrap: "on",
+                  automaticLayout: true,
+                  domReadOnly: true,
+                  padding: {
+                    top: 16,
+                    bottom: 16,
+                  },
+                  lineNumbersMinChars: 3,
+                  scrollbar: {
+                    verticalScrollbarSize: 7,
+                    horizontalScrollbarSize: 7,
+                    verticalSliderSize: 7,
+                    horizontalSliderSize: 7,
+                    useShadows: false,
+                    verticalHasArrows: false,
+                    horizontalHasArrows: false,
+                    arrowSize: 0,
+                  },
+                  smoothScrolling: true,
+                  cursorBlinking: "solid",
+                  cursorSmoothCaretAnimation: "on",
+                  renderWhitespace: "selection",
+                  guides: {
+                    indentation: true,
+                    bracketPairs: true,
+                  },
+                  occurrencesHighlight: "off",
+                  renderValidationDecorations: "off",
+                }}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </main>
   );
 }
