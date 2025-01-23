@@ -7,10 +7,10 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Editor as MonacoEditor, type Monaco } from "@monaco-editor/react";
-import { FaChevronRight } from "react-icons/fa";
+import { FaChevronRight, FaReact } from "react-icons/fa";
 import { getRepo } from "~/lib/db";
 import { Skeleton } from "../ui/skeleton";
-import { FolderIcon } from "lucide-react";
+import { useClerk } from "@clerk/nextjs";
 
 export default function Code() {
   const params = useParams<{ id: string }>();
@@ -18,6 +18,7 @@ export default function Code() {
   const file = searchParams.get("file");
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
+  const clerk = useClerk();
 
   const [code, setCode] = useState<string>("");
   const [language, setLanguage] = useState<string>("typescript");
@@ -135,15 +136,12 @@ export default function Code() {
   // Change this to always open readme.md instead if no file is selected
   if (!file) {
     return (
-      <main className="hidden flex-1 items-center justify-center border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 md:flex">
+      <main className="hidden flex-1 items-center justify-center border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0F0F10] md:flex">
         <div className="space-y-3 text-center">
-          <FolderIcon className="mx-auto h-10 w-10 text-zinc-400 dark:text-zinc-500" />
+          <FaReact className="mx-auto h-10 w-10 text-zinc-400 dark:text-zinc-500" />
           <div className="space-y-1">
             <p className="text-sm text-zinc-500 dark:text-zinc-400">
               No file selected
-            </p>
-            <p className="text-xs text-zinc-400 dark:text-zinc-500">
-              Select a file from the sidebar to view its content
             </p>
           </div>
         </div>
@@ -153,7 +151,7 @@ export default function Code() {
 
   if (isLoading) {
     return (
-      <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 md:block">
+      <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0F0F10] md:block">
         <div className="space-y-3 p-4">
           <div className="flex items-center space-x-2">
             <Skeleton className="h-4 w-4" />
@@ -171,7 +169,7 @@ export default function Code() {
   }
 
   return (
-    <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 md:block">
+    <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0F0F10] md:block">
       <div className="flex h-screen flex-col">
         <div className="flex items-center border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
           <FaChevronRight className="mr-2 h-4 w-4 text-zinc-400 dark:text-zinc-500" />
@@ -180,62 +178,64 @@ export default function Code() {
           </span>
         </div>
         <div className="monaco-editor-container flex-1">
-          <MonacoEditor
-            height="100%"
-            language={language}
-            theme={isDarkMode ? "custom-dark" : "light"}
-            value={code}
-            beforeMount={beforeMount}
-            options={{
-              readOnly: true,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              fontSize: 13,
-              fontLigatures: true,
-              lineNumbers: "on",
-              renderLineHighlight: "all",
-              wordWrap: "on",
-              automaticLayout: true,
-              domReadOnly: true,
-              padding: {
-                top: 16,
-                bottom: 16,
-              },
-              lineNumbersMinChars: 3,
-              glyphMargin: false,
-              folding: true,
-              foldingHighlight: true,
-              showFoldingControls: "mouseover",
-              matchBrackets: "always",
-              colorDecorators: true,
-              contextmenu: false,
-              mouseWheelZoom: false,
-              rulers: [80],
-              roundedSelection: true,
-              scrollbar: {
-                vertical: "visible",
-                horizontal: "visible",
-                verticalScrollbarSize: 8,
-                horizontalScrollbarSize: 8,
-                verticalSliderSize: 8,
-                horizontalSliderSize: 8,
-                useShadows: false,
-                verticalHasArrows: false,
-                horizontalHasArrows: false,
-                arrowSize: 0,
-              },
-              smoothScrolling: true,
-              cursorBlinking: "solid",
-              cursorSmoothCaretAnimation: "on",
-              renderWhitespace: "selection",
-              guides: {
-                indentation: true,
-                bracketPairs: true,
-              },
-              occurrencesHighlight: "off",
-              renderValidationDecorations: "off",
-            }}
-          />
+          {clerk.loaded && (
+            <MonacoEditor
+              height="100%"
+              language={language}
+              theme={isDarkMode ? "custom-dark" : "light"}
+              value={code}
+              beforeMount={beforeMount}
+              options={{
+                readOnly: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 13,
+                fontLigatures: true,
+                lineNumbers: "on",
+                renderLineHighlight: "all",
+                wordWrap: "on",
+                automaticLayout: true,
+                domReadOnly: true,
+                padding: {
+                  top: 16,
+                  bottom: 16,
+                },
+                lineNumbersMinChars: 3,
+                glyphMargin: false,
+                folding: true,
+                foldingHighlight: true,
+                showFoldingControls: "mouseover",
+                matchBrackets: "always",
+                colorDecorators: true,
+                contextmenu: false,
+                mouseWheelZoom: false,
+                rulers: [80],
+                roundedSelection: true,
+                scrollbar: {
+                  vertical: "visible",
+                  horizontal: "visible",
+                  verticalScrollbarSize: 8,
+                  horizontalScrollbarSize: 8,
+                  verticalSliderSize: 8,
+                  horizontalSliderSize: 8,
+                  useShadows: false,
+                  verticalHasArrows: false,
+                  horizontalHasArrows: false,
+                  arrowSize: 0,
+                },
+                smoothScrolling: true,
+                cursorBlinking: "solid",
+                cursorSmoothCaretAnimation: "on",
+                renderWhitespace: "selection",
+                guides: {
+                  indentation: true,
+                  bracketPairs: true,
+                },
+                occurrencesHighlight: "off",
+                renderValidationDecorations: "off",
+              }}
+            />
+          )}
         </div>
       </div>
     </main>
