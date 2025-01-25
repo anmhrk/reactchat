@@ -5,6 +5,7 @@ import { type Metadata } from "next";
 import { ThemeProvider } from "~/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "~/components/ui/sonner";
+import { TooltipProvider } from "~/components/ui/tooltip";
 
 export const metadata: Metadata = {
   title: "ReactChat | Easily chat with open source React apps",
@@ -29,8 +30,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
-            <Toaster richColors position="top-center" />
+            <TooltipProvider delayDuration={100}>
+              {children}
+              <Toaster richColors position="top-center" />
+            </TooltipProvider>
           </ThemeProvider>
         </body>
       </html>

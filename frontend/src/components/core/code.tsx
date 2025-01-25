@@ -127,7 +127,7 @@ export default function Code() {
       window.removeEventListener("resize", checkOverflow);
       clearTimeout(timeoutId);
     };
-  }, [file, code]);
+  }, [file, code, repoName]);
 
   if (isLoading && file) {
     return (
@@ -152,8 +152,10 @@ export default function Code() {
     if (!shouldTruncate || parts.length <= 4) {
       return parts.map((part, index) => (
         <span key={index} className="flex items-center">
-          {index > 0 && <FaChevronRight className="mx-1 h-3 w-3" />}
-          <span>{part}</span>
+          {index > 0 && (
+            <FaChevronRight className="mx-1 h-3 w-3 flex-shrink-0" />
+          )}
+          <span className="min-w-0 flex-shrink truncate">{part}</span>
         </span>
       ));
     }
@@ -161,17 +163,19 @@ export default function Code() {
     return (
       <>
         <span className="flex items-center">
-          <span>{parts[0]}</span>
-          <FaChevronRight className="mx-1 h-3 w-3" />
-          <span>{parts[1]}</span>
-          <FaChevronRight className="mx-1 h-3 w-3" />
-          <span>{parts[2]}</span>
+          <span className="min-w-0 flex-shrink truncate">{parts[0]}</span>
+          <FaChevronRight className="mx-1 h-3 w-3 flex-shrink-0" />
+          <span className="min-w-0 flex-shrink truncate">{parts[1]}</span>
+          <FaChevronRight className="mx-1 h-3 w-3 flex-shrink-0" />
+          <span className="min-w-0 flex-shrink truncate">{parts[2]}</span>
         </span>
         <span className="flex items-center">
-          <FaChevronRight className="mx-1 h-3 w-3" />
-          <span className="text-zinc-400">...</span>
-          <FaChevronRight className="mx-1 h-3 w-3" />
-          <span>{parts[parts.length - 1]}</span>
+          <FaChevronRight className="mx-1 h-3 w-3 flex-shrink-0" />
+          <span className="flex-shrink-0 text-zinc-400">...</span>
+          <FaChevronRight className="mx-1 h-3 w-3 flex-shrink-0" />
+          <span className="min-w-0 flex-shrink truncate">
+            {parts[parts.length - 1]}
+          </span>
         </span>
       </>
     );
@@ -188,14 +192,16 @@ export default function Code() {
         </div>
       ) : (
         <div className="flex h-screen flex-col">
-          <div className="flex min-w-0 items-center px-4 pt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          <div className="flex min-w-0 items-center p-2 px-4 text-sm text-zinc-600 dark:text-zinc-400">
             <div
-              className="flex w-0 min-w-0 flex-1 overflow-x-auto whitespace-nowrap"
+              className={`flex w-0 min-w-0 flex-1 whitespace-nowrap ${
+                shouldTruncate ? "overflow-x-hidden" : "overflow-x-auto"
+              }`}
               ref={pathContainerRef}
             >
               <Link
                 href={`/chat/${params.id}`}
-                className="flex-shrink-0 font-semibold text-black dark:text-white/80 dark:hover:text-white/100"
+                className="flex-shrink-0 truncate font-semibold text-black dark:text-white/80 dark:hover:text-white/100"
               >
                 {repoName}
               </Link>
@@ -225,8 +231,8 @@ export default function Code() {
                   automaticLayout: true,
                   domReadOnly: true,
                   padding: {
-                    top: 16,
-                    bottom: 16,
+                    top: 8,
+                    bottom: 8,
                   },
                   lineNumbersMinChars: 3,
                   scrollbar: {
@@ -243,10 +249,6 @@ export default function Code() {
                   cursorBlinking: "solid",
                   cursorSmoothCaretAnimation: "on",
                   renderWhitespace: "selection",
-                  guides: {
-                    indentation: true,
-                    bracketPairs: true,
-                  },
                   occurrencesHighlight: "off",
                   renderValidationDecorations: "off",
                 }}

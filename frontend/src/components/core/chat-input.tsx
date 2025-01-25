@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { FaArrowUp } from "react-icons/fa6";
@@ -10,6 +10,10 @@ export default function ChatInput() {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, []);
 
   const adjustTextareaHeight = () => {
     const textarea = textareaRef.current;
@@ -77,7 +81,7 @@ export default function ChatInput() {
         size="icon"
         variant="outline"
         className={cn(
-          "absolute right-5 top-1/2 h-8 w-8 shrink-0 translate-y-1/3 rounded-xl",
+          "absolute right-5 top-1/2 h-8 w-8 shrink-0 translate-y-1/3 rounded-xl border-zinc-300 transition-all duration-300 dark:border-zinc-700",
           input.trim()
             ? "bg-black dark:bg-white"
             : "bg-[#F4F4F5] dark:bg-[#1F1F22]",
