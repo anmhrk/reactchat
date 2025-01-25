@@ -36,6 +36,7 @@ export default function FileTree() {
         const response = await fetch(
           `${BACKEND_URL}/repo/${decodeURIComponent(params.id)}`,
         );
+
         const data = (await response.json()) as {
           files: { path: string; content: string }[];
           github_url: string;
@@ -52,12 +53,6 @@ export default function FileTree() {
 
     void loadRepo();
   }, [params.id, BACKEND_URL]);
-
-  useEffect(() => {
-    if (file) {
-      setSelectedFile(file);
-    }
-  }, [file]);
 
   function buildTree(files: { path: string; content: string }[]) {
     const root: FileNode[] = [];
@@ -108,6 +103,12 @@ export default function FileTree() {
 
     setTree(sortTree(root));
   }
+
+  useEffect(() => {
+    if (file) {
+      setSelectedFile(file);
+    }
+  }, [file]);
 
   return (
     <main className="hidden w-[15%] flex-col border-r border-zinc-200 bg-[#F3F3F3] dark:border-zinc-800 dark:bg-[#0F0F10] md:flex">

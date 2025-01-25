@@ -25,6 +25,7 @@ export default function Code() {
   const [repoName, setRepoName] = useState<string>("");
   const [language, setLanguage] = useState<string>("typescript");
   const [isLoading, setIsLoading] = useState(true);
+  const [isPathNotFound, setIsPathNotFound] = useState(false);
   const [shouldTruncate, setShouldTruncate] = useState(false);
   const pathContainerRef = useRef<HTMLDivElement>(null);
 
@@ -35,15 +36,20 @@ export default function Code() {
       rules: [],
       colors: {
         "editor.background": "#09090B",
-        "editor.foreground": "#D4D4D4",
       },
     });
 
     monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: true,
+      noSuggestionDiagnostics: true,
       diagnosticCodesToIgnore: [7027],
     });
 
     monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      noSemanticValidation: true,
+      noSyntaxValidation: true,
+      noSuggestionDiagnostics: true,
       diagnosticCodesToIgnore: [7027],
     });
   };
@@ -66,6 +72,7 @@ export default function Code() {
 
         const fileData = repo.files.find((f) => f.path === file);
         if (!fileData) {
+          setIsPathNotFound(true);
           setIsLoading(false);
           return;
         }
@@ -183,11 +190,13 @@ export default function Code() {
 
   return (
     <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#09090B] md:block">
-      {!file ? (
+      {!file || isPathNotFound ? (
         <div className="flex h-screen flex-col items-center justify-center space-y-3 text-center">
           <FaReact className="mx-auto h-24 w-24 text-[#58C4DC]" />
           <p className="text-md text-zinc-500 dark:text-zinc-400">
-            Select a file to view and interact with the code
+            {isPathNotFound
+              ? "File not found. Please select a different file."
+              : "Select a file to view and interact with the code"}
           </p>
         </div>
       ) : (
@@ -251,6 +260,7 @@ export default function Code() {
                   renderWhitespace: "selection",
                   occurrencesHighlight: "off",
                   renderValidationDecorations: "off",
+                  hover: { enabled: false },
                 }}
               />
             )}

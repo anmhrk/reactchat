@@ -22,7 +22,7 @@ class IngestRequest(BaseModel):
 async def validate(request: IngestRequest, db: Session = Depends(get_db)):
     try:
         # Validating request URL
-        pattern = r"^https://github\.com/([a-zA-Z0-9-]+)/([a-zA-Z0-9-._]+)"
+        pattern = r"^(?:https://)?github\.com/([a-zA-Z0-9-]+)/([a-zA-Z0-9-._]+)"
         match = re.match(pattern, request.url)
         if not match:
             raise HTTPException(status_code=400, detail="Invalid GitHub repository URL")

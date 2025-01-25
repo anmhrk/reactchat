@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { FileNode } from "~/lib/types";
 import { FaChevronRight } from "react-icons/fa";
 import {
@@ -16,7 +16,7 @@ import { SiTypescript, SiJavascript, SiNextdotjs } from "react-icons/si";
 import { FaReact } from "react-icons/fa";
 import { VscJson } from "react-icons/vsc";
 import { cn } from "~/lib/utils";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 
 const ICON_MAP = {
   ".ts": SiTypescript,
@@ -62,6 +62,29 @@ export default function FileTreeItem({
   const [isOpen, setIsOpen] = useState(false);
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const file = searchParams.get("file");
+
+  // Auto expand file tree logic on refresh
+  useEffect(() => {
+    if (file && node.type === "directory") {
+      const filePathParts = file.split("/");
+      const currentDir = node.name;
+      const currentLevelIndex = level;
+
+      console.log({
+        currentDir,
+        level,
+        filePathParts,
+        partAtLevel: filePathParts[currentLevelIndex],
+        shouldExpand: filePathParts[currentLevelIndex] === currentDir,
+      });
+
+      if (filePathParts[currentLevelIndex] === currentDir) {
+        setIsOpen(true);
+      }
+    }
+  }, [file, node.type, node.name, level]);
 
   const getFileIcon = () => {
     if (node.type === "directory") {

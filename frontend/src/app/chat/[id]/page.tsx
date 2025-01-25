@@ -18,15 +18,33 @@ export default async function Page({
     email: user?.primaryEmailAddress?.emailAddress ?? null,
   };
 
-  const { id } = await params;
+  const chatId = (await params).id;
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  // add check here to see if valid chat id
+  const chat = await fetch(`${BACKEND_URL}/chat/validate/${chatId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      user_id: userInfo.id,
+    }),
+  });
 
-  return (
-    <main className="flex h-screen">
-      <FileTree />
-      <Code />
-      <Chat userInfo={userInfo} />
-    </main>
-  );
+  if (!chat.ok) {
+    if (chat.status === 404) {
+      return <div>Chat Not Found</div>;
+    }
+    if (chat.status === 403) {
+      return <div>Forbidden</div>;
+    }
+  } else {
+    return (
+      <main className="flex h-screen">
+        <FileTree />
+        <Code />
+        <Chat userInfo={userInfo} />
+      </main>
+    );
+  }
 }
