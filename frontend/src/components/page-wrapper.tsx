@@ -20,27 +20,26 @@ export default async function PageWrapper({
   };
 
   return (
-    <main className={cn("relative flex min-h-screen flex-col p-6", className)}>
+    <div className="flex min-h-screen flex-col">
       <Header userInfo={userInfo} />
 
-      {children}
+      <main className={cn("flex flex-1 flex-col px-6", className)}>
+        {children}
+      </main>
 
-      <div className="absolute bottom-2 right-3 z-10 text-sm dark:text-white/80">
-        built by{" "}
-        <Link
-          href="https://github.com/anmhrk"
-          className="underline transition-colors duration-200 hover:underline-offset-4 dark:hover:text-white"
-        >
-          @anmhrk
-        </Link>
-        {" | "}
-        <Link
-          href="https://github.com/anmhrk/reactchat"
-          className="underline transition-colors duration-200 hover:underline-offset-4 dark:hover:text-white"
-        >
-          source code
-        </Link>
-      </div>
-    </main>
+      <footer className="mt-auto py-4">
+        <div className="mx-auto flex items-center justify-end px-4">
+          <div className="flex items-center gap-1 text-sm">
+            built by{" "}
+            <Link
+              href="https://github.com/anmhrk/reactchat"
+              className="underline transition-colors duration-200 hover:underline-offset-4 dark:hover:text-white"
+            >
+              @anmhrk
+            </Link>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
