@@ -13,7 +13,6 @@ export default async function Page({
   const userInfo: UserInfo = {
     id: user?.id ?? null,
     fullName: user?.fullName ?? null,
-    username: user?.username ?? null,
     imageUrl: user?.imageUrl ?? null,
     email: user?.primaryEmailAddress?.emailAddress ?? null,
   };

@@ -114,7 +114,7 @@ export default function FileTree() {
     <main className="hidden w-[15%] flex-col border-r border-zinc-200 bg-[#F3F3F3] dark:border-zinc-800 dark:bg-[#0F0F10] md:flex">
       <Link href="/" className="flex items-center gap-2 p-2">
         <FaReact className="h-5 w-5 text-[#58C4DC]" />
-        <h1 className="font-mono text-lg font-bold">ReactChat</h1>
+        <h1 className="text-lg font-bold">ReactChat</h1>
       </Link>
       {isLoading ? (
         <Loading />

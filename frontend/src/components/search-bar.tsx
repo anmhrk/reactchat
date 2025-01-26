@@ -66,16 +66,16 @@ export function SearchBar({ userId }: { userId: string | null }) {
       <Input
         name="url"
         type="text"
-        placeholder="Enter GitHub repository URL"
+        placeholder="https://github.com/..."
         required
-        className="h-12 flex-1 border-gray-300 bg-white/80 font-mono placeholder:text-gray-500 dark:border-white/20 dark:bg-white/10 dark:placeholder:text-white/50"
+        className="h-12 flex-1 border-gray-300 bg-white/80 !text-[15px] placeholder:text-gray-500 dark:border-white/20 dark:bg-white/10 dark:placeholder:text-white/50"
       />
       <Button
         type="submit"
         disabled={isLoading}
-        className="h-12 w-full px-6 font-mono font-bold md:w-auto md:min-w-[100px]"
+        className="h-12 w-full px-6 text-[15px] font-bold md:w-auto md:min-w-[100px]"
       >
-        {isLoading ? <Loader2 className="!h-6 !w-6 animate-spin" /> : "Search"}
+        {isLoading ? <Loader2 className="!h-6 !w-6 animate-spin" /> : "Chat"}
       </Button>
     </form>
   );

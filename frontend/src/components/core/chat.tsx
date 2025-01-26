@@ -57,12 +57,12 @@ export default function Chat({ userInfo }: { userInfo: UserInfo }) {
     }
   };
 
-  useEffect(() => {
-    void startIndexing();
-    return () => {
-      setIndexingStatus("not_started");
-    };
-  }, []);
+  // useEffect(() => {
+  //   void startIndexing();
+  //   return () => {
+  //     setIndexingStatus("not_started");
+  //   };
+  // }, []);
 
   if (indexingStatus === "in_progress") {
     return (

@@ -1,6 +1,6 @@
 import "~/styles/globals.css";
+import { Inter } from "next/font/google";
 
-import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
 import { ThemeProvider } from "~/components/theme-provider";
 import { ClerkProvider } from "@clerk/nextjs";
@@ -13,6 +13,12 @@ export const metadata: Metadata = {
   icons: [{ rel: "icon", url: "/favicon.ico" }],
 };
 
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -20,7 +26,7 @@ export default function RootLayout({
     <ClerkProvider afterSignOutUrl="/">
       <html
         lang="en"
-        className={`${GeistSans.variable} overflow-hidden`}
+        className={`${inter.className} overflow-hidden`}
         suppressHydrationWarning
       >
         <body>
