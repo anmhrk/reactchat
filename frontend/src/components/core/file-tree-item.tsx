@@ -72,14 +72,6 @@ export default function FileTreeItem({
       const currentDir = node.name;
       const currentLevelIndex = level;
 
-      console.log({
-        currentDir,
-        level,
-        filePathParts,
-        partAtLevel: filePathParts[currentLevelIndex],
-        shouldExpand: filePathParts[currentLevelIndex] === currentDir,
-      });
-
       if (filePathParts[currentLevelIndex] === currentDir) {
         setIsOpen(true);
       }

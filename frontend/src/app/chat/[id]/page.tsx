@@ -21,7 +21,7 @@ export default async function Page({
   const chatId = (await params).id;
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const chat = await fetch(`${BACKEND_URL}/chat/validate/${chatId}`, {
+  const chat = await fetch(`${BACKEND_URL}/chat/${chatId}/validate`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
