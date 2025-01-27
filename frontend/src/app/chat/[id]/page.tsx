@@ -1,8 +1,6 @@
-import FileTree from "~/components/core/file-tree";
-import Code from "~/components/core/code";
-import Chat from "~/components/core/chat";
 import { currentUser } from "@clerk/nextjs/server";
 import type { UserInfo } from "~/lib/types";
+import LayoutHelper from "~/components/core/layout-helper";
 
 export type IngestStatus =
   | "not_started"
@@ -49,11 +47,5 @@ export default async function Page({
   const statusResponse = await fetch(`${BACKEND_URL}/ingest/${chatId}/status`);
   const { status } = (await statusResponse.json()) as { status: IngestStatus };
 
-  return (
-    <main className="flex h-screen">
-      <FileTree />
-      <Code />
-      <Chat userInfo={userInfo} initialStatus={status} />
-    </main>
-  );
+  return <LayoutHelper userInfo={userInfo} initialStatus={status} />;
 }

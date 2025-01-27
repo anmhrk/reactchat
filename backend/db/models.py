@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Boolean
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Boolean, Integer
 from sqlalchemy.sql import func
 from .config import Base
 
@@ -22,6 +22,8 @@ class Chat(Base):
     is_public = Column(Boolean, default=False)
     file_tree = Column(String)
     indexing_status = Column(String, default="not_started")
+    total_chunks = Column(Integer, default=0)
+    indexed_chunks = Column(Integer, default=0)
 
 
 class Embedding(Base):
@@ -39,6 +41,6 @@ class ChatMessage(Base):
 
     id = Column(String, primary_key=True, index=True)
     chat_id = Column(String, ForeignKey("chats.id"), index=True)
-    content = Column(String)
+    message = Column(String)
     role = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

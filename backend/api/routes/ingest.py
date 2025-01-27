@@ -90,10 +90,8 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
             chat = Chat(
                 id=chat_id,
                 github_url=clean_url,
-                is_public=False,
                 user_id=request.userId,
                 file_tree=tree,
-                indexing_status="not_started",
             )
             db.add(chat)
             db.commit()
@@ -123,6 +121,9 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
         )
         chunks = text_splitter.split_text(content)
         logger.info(f"Created {len(chunks)} chunks")
+        setattr(chat, "total_chunks", len(chunks))
+        setattr(chat, "indexed_chunks", 0)
+        db.commit()
 
         embeddings = OpenAIEmbeddings(
             model="text-embedding-3-large",
@@ -136,6 +137,8 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
             try:
                 embedding_vector = await embeddings.aembed_query(chunk)
                 all_embeddings.append(embedding_vector)
+                setattr(chat, "indexed_chunks", i + 1)
+                db.commit()
                 logger.info(f"Saved embedding for chunk {i+1}")
             except Exception as chunk_error:
                 logger.error(f"Error processing chunk {i+1}: {str(chunk_error)}")
@@ -226,4 +229,8 @@ async def check_indexing_status(chat_id: str, db: Session = Depends(get_db)):
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
-    return {"status": chat.indexing_status}
+    progress = 0
+    if str(chat.indexing_status) == "in_progress" and chat.total_chunks is not None:
+        progress = (chat.indexed_chunks / chat.total_chunks) * 100
+
+    return {"status": chat.indexing_status, "progress": progress}
