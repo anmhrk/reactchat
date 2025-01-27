@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
+// Todo: hover on mobile for the buttons? look into it later
+// Todo: add a select all chats button + delete button when all chats are selected
+
 "use client";
 
 import Link from "next/link";

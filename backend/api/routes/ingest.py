@@ -12,6 +12,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 import json
 import logging
+import tiktoken
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,67 +23,6 @@ router = APIRouter()
 class IngestValidateRequest(BaseModel):
     url: str
     userId: str
-
-
-async def create_embeddings(db: Session, chat_id: str, content: str, tree: str):
-    try:
-        logger.info(f"Starting embedding creation for chat {chat_id}")
-        chat = db.query(Chat).filter(Chat.id == chat_id).first()
-        if not chat:
-            logger.error(f"Chat {chat_id} not found")
-            raise HTTPException(status_code=404, detail="Chat not found")
-
-        logger.info("Splitting text into chunks...")
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
-            length_function=len,
-            separators=["\n\n", "\n", " ", ""],
-        )
-        chunks = text_splitter.split_text(content)
-        logger.info(f"Created {len(chunks)} chunks")
-
-        logger.info("Initializing OpenAI embeddings...")
-        embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-large",
-        )
-
-        logger.info("Processing chunks and creating embeddings...")
-        for i, chunk in enumerate(chunks):
-            logger.info(f"Processing chunk {i+1}/{len(chunks)}")
-            try:
-                embedding_vector = await embeddings.aembed_query(chunk)
-                embedding = Embedding(
-                    id=str(uuid.uuid4()),
-                    github_url=chat.github_url,
-                    content=chunk,
-                    embedding=json.dumps(embedding_vector),
-                    chunk_metadata={
-                        "chunk_index": i,
-                        "total_chunks": len(chunks),
-                    },
-                )
-                db.add(embedding)
-                # Commit after each chunk to ensure partial progress is saved
-                db.commit()
-                logger.info(f"Saved embedding for chunk {i+1}")
-            except Exception as chunk_error:
-                logger.error(f"Error processing chunk {i+1}: {str(chunk_error)}")
-                raise
-
-        logger.info("Updating chat with file tree and status...")
-        setattr(chat, "file_tree", json.loads(tree))
-        setattr(chat, "indexing_status", "completed")
-        db.commit()
-        logger.info("Embedding creation completed successfully")
-        return True
-    except Exception as e:
-        logger.error(f"Error in create_embeddings: {str(e)}")
-        chat = db.query(Chat).filter(Chat.id == chat_id).first()
-        if chat:
-            setattr(chat, "indexing_status", "failed")
-            db.commit()
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/ingest/validate")
@@ -97,16 +37,15 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
         # Check if repo is public
         api_url = f"https://api.github.com/repos/{match.group(1)}/{match.group(2)}"
         response = requests.get(api_url)
-
         if response.status_code == 404:
             raise HTTPException(
-                status_code=400, detail="Repository either doesn't exist or is private"
+                status_code=400, detail="Repository doesn't exist or is private"
             )
 
         clean_url = f"https://github.com/{match.group(1)}/{match.group(2)}"
 
-        # Check if React app
-        _, _, content = await asyncio.to_thread(
+        # First check if React app through package.json
+        _, _, package_content = await asyncio.to_thread(
             ingest,
             clean_url,
             include_patterns=[
@@ -114,34 +53,108 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
             ],
         )
 
-        if '"react":' not in content and "'react':" not in content:
+        if '"react":' not in package_content and "'react':" not in package_content:
             raise HTTPException(
                 status_code=400,
                 detail="Not a React app",
             )
 
-        # Todo: Check for repo token count and if it's too large, return error
-        # Todo: Check for monorepo too and only count frontend
+        # Now get the full repo content and file tree and check if token count is too high
+        _, tree, content = await asyncio.to_thread(
+            ingest,
+            clean_url,
+        )
 
-        existing_repo = (
+        # Rough estimate of token count
+        encoding = tiktoken.get_encoding("cl100k_base")
+        token_count = len(encoding.encode(content))
+        if token_count > 300000:
+            raise HTTPException(
+                status_code=400,
+                detail="Sorry, repository is too large (>300k tokens)",
+            )
+
+        existing_chat = (
             db.query(Chat)
             .filter(Chat.github_url == clean_url, Chat.user_id == request.userId)
             .first()
         )
 
-        id = existing_repo.id if existing_repo else str(uuid.uuid4().hex[:8])
+        chat_id = existing_chat.id if existing_chat else str(uuid.uuid4().hex[:8])
 
-        if not existing_repo:
+        if not existing_chat:
             chat = Chat(
-                id=id,
+                id=chat_id,
                 github_url=clean_url,
+                is_public=False,
                 user_id=request.userId,
+                file_tree=tree,
+                indexing_status="not_started",
             )
             db.add(chat)
             db.commit()
 
-        return {"message": f"/chat/{id}"}
+        return {"message": f"/chat/{chat_id}"}
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def create_embeddings(db: Session, chat_id: str, content: str):
+    try:
+        logger.info(f"Starting embedding creation for chat {chat_id}")
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat:
+            raise HTTPException(status_code=404, detail="Chat not found")
+
+        def tiktoken_len(text: str):
+            encoding = tiktoken.get_encoding("cl100k_base")
+            return len(encoding.encode(text))
+
+        logger.info("Splitting text into chunks...")
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=8000,
+            chunk_overlap=1600,
+            length_function=tiktoken_len,
+            separators=["\n\n", "\n", " ", ""],
+        )
+        chunks = text_splitter.split_text(content)
+        logger.info(f"Created {len(chunks)} chunks")
+
+        embeddings = OpenAIEmbeddings(
+            model="text-embedding-3-large",
+        )
+
+        # Saves all embeddings in a list
+        all_embeddings = list()
+        logger.info("Processing chunks and creating embeddings...")
+        for i, chunk in enumerate(chunks):
+            logger.info(f"Processing chunk {i+1}/{len(chunks)}")
+            try:
+                embedding_vector = await embeddings.aembed_query(chunk)
+                all_embeddings.append(embedding_vector)
+                logger.info(f"Saved embedding for chunk {i+1}")
+            except Exception as chunk_error:
+                logger.error(f"Error processing chunk {i+1}: {str(chunk_error)}")
+                raise
+
+        embedding = Embedding(
+            id=str(uuid.uuid4()),
+            github_url=chat.github_url,
+            chunks=json.dumps(chunks),
+            embedding=json.dumps(all_embeddings),
+        )
+        db.add(embedding)
+        setattr(chat, "indexing_status", "completed")
+        db.commit()
+
+        logger.info("Embedding creation completed successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error in create_embeddings: {str(e)}")
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if chat:
+            setattr(chat, "indexing_status", "failed")
+            db.commit()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -149,52 +162,39 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
 async def ingest_repo(
     chat_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
-    logger.info(f"Starting ingest for chat {chat_id}")
     chat = db.query(Chat).filter(Chat.id == chat_id).first()
     if not chat:
-        logger.error(f"Chat {chat_id} not found")
         raise HTTPException(status_code=404, detail="Chat not found")
 
     existing_embeddings = (
         db.query(Embedding).filter(Embedding.github_url == chat.github_url).first()
     )
     if existing_embeddings:
-        logger.info(f"Found existing embeddings for {chat.github_url}")
-        _, tree, _ = await asyncio.to_thread(
-            ingest,
-            str(chat.github_url),
-        )
-        setattr(chat, "file_tree", json.loads(tree))
         setattr(chat, "indexing_status", "completed")
         db.commit()
         return {"status": "already_indexed"}
 
-    logger.info("Setting indexing status to in_progress")
     setattr(chat, "indexing_status", "in_progress")
     db.commit()
 
     try:
-        logger.info("Fetching repository content...")
-        _, tree, content = await asyncio.to_thread(
+        _, _, content = await asyncio.to_thread(
             ingest,
             str(chat.github_url),
         )
-        logger.info("Content fetched successfully")
 
         # Create a new session for the background task
         new_db = SessionLocal()
 
         async def background_task():
             try:
-                await create_embeddings(new_db, chat_id, content, tree)
+                await create_embeddings(new_db, chat_id, content)
             except Exception as e:
                 logger.error(f"Background task failed: {str(e)}")
             finally:
                 new_db.close()
 
         background_tasks.add_task(background_task)
-        logger.info("Background task started")
-
         return {"status": "indexing_started"}
     except Exception as e:
         logger.error(f"Error in ingest_repo: {str(e)}")

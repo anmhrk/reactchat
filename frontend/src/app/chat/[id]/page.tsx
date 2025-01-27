@@ -4,6 +4,14 @@ import Chat from "~/components/core/chat";
 import { currentUser } from "@clerk/nextjs/server";
 import type { UserInfo } from "~/lib/types";
 
+export type IngestStatus =
+  | "already_indexed"
+  | "indexing_started"
+  | "not_started"
+  | "in_progress"
+  | "completed"
+  | "failed";
+
 export default async function Page({
   params,
 }: {
@@ -37,13 +45,17 @@ export default async function Page({
     if (chat.status === 403) {
       return <div>Forbidden</div>;
     }
-  } else {
-    return (
-      <main className="flex h-screen">
-        <FileTree />
-        <Code />
-        <Chat userInfo={userInfo} />
-      </main>
-    );
   }
+
+  // Fetch indexing status on server
+  const statusResponse = await fetch(`${BACKEND_URL}/ingest/${chatId}/status`);
+  const { status } = (await statusResponse.json()) as { status: IngestStatus };
+
+  return (
+    <main className="flex h-screen">
+      <FileTree />
+      <Code />
+      <Chat userInfo={userInfo} initialStatus={status} />
+    </main>
+  );
 }

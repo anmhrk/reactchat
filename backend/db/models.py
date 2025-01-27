@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON, Boolean
 from sqlalchemy.sql import func
 from .config import Base
 
@@ -19,10 +19,9 @@ class Chat(Base):
     github_url = Column(String, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(String, ForeignKey("users.id"))
-    file_tree = Column(JSON)
-    indexing_status = Column(
-        String, default="not_started"
-    )  # not_started, in_progress, completed, failed
+    is_public = Column(Boolean, default=False)
+    file_tree = Column(String)
+    indexing_status = Column(String, default="not_started")
 
 
 class Embedding(Base):
@@ -30,7 +29,16 @@ class Embedding(Base):
 
     id = Column(String, primary_key=True, index=True)
     github_url = Column(String, ForeignKey("chats.github_url"), index=True)
-    content = Column(JSON)
+    chunks = Column(JSON)
     embedding = Column(JSON)
-    chunk_metadata = Column(JSON)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(String, primary_key=True, index=True)
+    chat_id = Column(String, ForeignKey("chats.id"), index=True)
+    content = Column(String)
+    role = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
