@@ -13,11 +13,15 @@ from langchain_openai import OpenAIEmbeddings
 import json
 import logging
 import tiktoken
+from threading import Lock
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Global lock to prevent multiple requests from being processed at the same time
+indexing_locks = {}
 
 
 class IngestValidateRequest(BaseModel):
@@ -147,7 +151,7 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
         setattr(chat, "indexing_status", "completed")
         db.commit()
 
-        logger.info("Embedding creation completed successfully")
+        logger.info("Embeddings created successfully")
         return True
     except Exception as e:
         logger.error(f"Error in create_embeddings: {str(e)}")
@@ -162,45 +166,58 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
 async def ingest_repo(
     chat_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
-    chat = db.query(Chat).filter(Chat.id == chat_id).first()
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
+    # Get or create lock for this chat_id
+    if chat_id not in indexing_locks:
+        indexing_locks[chat_id] = Lock()
 
-    existing_embeddings = (
-        db.query(Embedding).filter(Embedding.github_url == chat.github_url).first()
-    )
-    if existing_embeddings:
-        setattr(chat, "indexing_status", "completed")
-        db.commit()
-        return {"status": "already_indexed"}
-
-    setattr(chat, "indexing_status", "in_progress")
-    db.commit()
+    # Try to acquire lock, return if already locked
+    if not indexing_locks[chat_id].acquire(blocking=False):
+        return {"status": "indexing_started"}
 
     try:
-        _, _, content = await asyncio.to_thread(
-            ingest,
-            str(chat.github_url),
+        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        if not chat:
+            raise HTTPException(status_code=404, detail="Chat not found")
+
+        existing_embeddings = (
+            db.query(Embedding).filter(Embedding.github_url == chat.github_url).first()
         )
+        if existing_embeddings:
+            setattr(chat, "indexing_status", "completed")
+            db.commit()
+            return {"status": "completed"}
 
-        # Create a new session for the background task
-        new_db = SessionLocal()
-
-        async def background_task():
-            try:
-                await create_embeddings(new_db, chat_id, content)
-            except Exception as e:
-                logger.error(f"Background task failed: {str(e)}")
-            finally:
-                new_db.close()
-
-        background_tasks.add_task(background_task)
-        return {"status": "indexing_started"}
-    except Exception as e:
-        logger.error(f"Error in ingest_repo: {str(e)}")
-        setattr(chat, "indexing_status", "failed")
+        setattr(chat, "indexing_status", "in_progress")
         db.commit()
-        raise HTTPException(status_code=500, detail=str(e))
+
+        try:
+            _, _, content = await asyncio.to_thread(
+                ingest,
+                str(chat.github_url),
+            )
+
+            # Create a new session for the background task
+            new_db = SessionLocal()
+
+            async def background_task():
+                try:
+                    await create_embeddings(new_db, chat_id, content)
+                except Exception as e:
+                    logger.error(f"Background task failed: {str(e)}")
+                    setattr(chat, "indexing_status", "failed")
+                    db.commit()
+                finally:
+                    new_db.close()
+
+            background_tasks.add_task(background_task)
+            return {"status": "in_progress"}
+        except Exception as e:
+            logger.error(f"Error in ingest_repo: {str(e)}")
+            setattr(chat, "indexing_status", "failed")
+            db.commit()
+            raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        indexing_locks[chat_id].release()
 
 
 @router.get("/ingest/{chat_id}/status")

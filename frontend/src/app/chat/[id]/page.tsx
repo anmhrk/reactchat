@@ -5,8 +5,6 @@ import { currentUser } from "@clerk/nextjs/server";
 import type { UserInfo } from "~/lib/types";
 
 export type IngestStatus =
-  | "already_indexed"
-  | "indexing_started"
   | "not_started"
   | "in_progress"
   | "completed"
