@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from db.config import get_db
@@ -7,7 +8,7 @@ import uuid
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 import json
 import numpy as np
-from typing import List
+from typing import List, AsyncGenerator
 
 router = APIRouter()
 
@@ -101,7 +102,7 @@ async def send_chat_message(
         If you're not sure about something, say so rather than making assumptions.
         """
 
-        chat_model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        chat_model = ChatOpenAI(model="gpt-4o-mini", temperature=0, streaming=True)
         messages = [
             {"role": "system", "content": system_prompt},
             {
@@ -113,17 +114,16 @@ async def send_chat_message(
             },
         ]
 
-        response = await chat_model.ainvoke(messages)
-        assistant_message = ChatMessage(
-            id=str(uuid.uuid4()),
-            chat_id=chat_id,
-            message=response.content,
-            role="assistant",
-        )
-        db.add(assistant_message)
-        db.commit()
+        async def stream_response_content() -> AsyncGenerator[str, None]:
+            async for chunk in chat_model.astream(messages):
+                content = chunk.content
+                yield f"data: {json.dumps({'content': content})}\n\n"
 
-        return {"message": response.content, "role": "assistant"}
+        # save the message to the database pending
+
+        return StreamingResponse(
+            stream_response_content(), media_type="text/event-stream"
+        )
     except Exception as e:
         print(f"Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Error loading embeddings")

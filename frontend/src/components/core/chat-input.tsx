@@ -6,8 +6,15 @@ import { Button } from "../ui/button";
 import { FaArrowUp } from "react-icons/fa6";
 import { cn } from "~/lib/utils";
 import { useParams } from "next/navigation";
+import type { Message } from "./chat";
 
-export default function ChatInput({ model }: { model: string }) {
+export default function ChatInput({
+  model,
+  onNewMessage,
+}: {
+  model: string;
+  onNewMessage: (message: Message) => void;
+}) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -45,6 +52,11 @@ export default function ChatInput({ model }: { model: string }) {
     e.preventDefault();
     if (!input.trim()) return;
 
+    const userMessage: Message = {
+      content: input,
+      role: "user",
+    };
+    onNewMessage(userMessage);
     setInput("");
 
     try {
@@ -58,19 +70,48 @@ export default function ChatInput({ model }: { model: string }) {
       if (!response.ok) {
         throw new Error("Failed to send message");
       }
-      const data = (await response.json()) as {
-        content: string;
-        role: string;
-      };
-      console.log(data);
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error("Failed to get reader");
+      }
+
+      let done = false;
+
+      while (!done) {
+        const { value, done: streamDone } = await reader.read();
+        done = streamDone;
+        if (done) {
+          break;
+        }
+
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split("\n\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data:")) {
+            const jsonStr = line.substring(5);
+            try {
+              const payload = JSON.parse(jsonStr) as { content: string };
+              const contentChunk = payload.content;
+              onNewMessage({
+                content: contentChunk,
+                role: "assistant",
+              });
+            } catch (e) {
+              console.error("Error parsing JSON chunk:", e, jsonStr);
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error(error);
+    } finally {
+      if (textareaRef.current) {
+        textareaRef.current.rows = 4;
+      }
+      formRef.current?.reset();
     }
-
-    if (textareaRef.current) {
-      textareaRef.current.rows = 4;
-    }
-    formRef.current?.reset();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
