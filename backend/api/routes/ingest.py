@@ -175,7 +175,7 @@ async def ingest_repo(
 
     # Try to acquire lock, return if already locked
     if not indexing_locks[chat_id].acquire(blocking=False):
-        return {"status": "indexing_started"}
+        return {"status": "in_progress"}
 
     try:
         chat = db.query(Chat).filter(Chat.id == chat_id).first()

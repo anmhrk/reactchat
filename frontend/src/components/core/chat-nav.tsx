@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import type { UserInfo } from "~/lib/types";
 import {
@@ -17,7 +15,7 @@ import { BsThreeDots } from "react-icons/bs";
 import { Button } from "../ui/button";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   Select,
   SelectItem,
@@ -27,8 +25,15 @@ import {
 } from "../ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-export default function ChatNav({ userInfo }: { userInfo: UserInfo }) {
-  const [model, setModel] = useState<string>("claude-3-5-sonnet-20241022");
+export default function ChatNav({
+  userInfo,
+  model,
+  setModel,
+}: {
+  userInfo: UserInfo;
+  model: string;
+  setModel: (model: string) => void;
+}) {
   const params = useParams<{ id: string }>();
   const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/chat/${params.id}`;
 
@@ -39,7 +44,7 @@ export default function ChatNav({ userInfo }: { userInfo: UserInfo }) {
     } else {
       window.localStorage.setItem("model", "claude-3-5-sonnet-20241022");
     }
-  }, []);
+  }, [setModel]);
 
   const MENU_ITEMS = [
     {
@@ -67,8 +72,8 @@ export default function ChatNav({ userInfo }: { userInfo: UserInfo }) {
       value: "claude-3-5-sonnet-20241022",
     },
     {
-      name: "GPT-4o",
-      value: "gpt-4o",
+      name: "GPT 4o mini",
+      value: "gpt-4o-mini",
     },
     {
       name: "Deepseek R1",

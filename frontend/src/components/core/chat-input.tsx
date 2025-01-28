@@ -5,11 +5,15 @@ import { Textarea } from "../ui/textarea";
 import { Button } from "../ui/button";
 import { FaArrowUp } from "react-icons/fa6";
 import { cn } from "~/lib/utils";
+import { useParams } from "next/navigation";
 
-export default function ChatInput() {
+export default function ChatInput({ model }: { model: string }) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const params = useParams<{ id: string }>();
+  const chatId = params.id;
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -41,8 +45,28 @@ export default function ChatInput() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    console.log("Submitting:", input);
     setInput("");
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/chat/${chatId}/message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: input, model }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to send message");
+      }
+      const data = (await response.json()) as {
+        content: string;
+        role: string;
+      };
+      console.log(data);
+    } catch (error) {
+      console.error(error);
+    }
+
     if (textareaRef.current) {
       textareaRef.current.rows = 4;
     }

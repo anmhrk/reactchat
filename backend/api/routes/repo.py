@@ -29,18 +29,27 @@ async def get_repo(chat_id: str, db: Session = Depends(get_db)):
                 full_path = os.path.join(root, filename)
                 relative_path = os.path.relpath(full_path, temp_dir)
 
-                # Skip .git directory and common binary files
-                if not relative_path.startswith(".git/") and not any(
-                    relative_path.endswith(ext)
-                    for ext in [
-                        ".jpg",
-                        ".png",
-                        ".gif",
-                        ".jpeg",
-                        ".webp",
-                        ".svg",
-                        ".ico",
-                    ]
+                # Skip .git directory, lock files, LICENSE, and common binary files
+                if (
+                    not relative_path.startswith(".git/")
+                    and not relative_path.lower() == "license"
+                    and not any(
+                        relative_path.endswith(ext)
+                        for ext in [
+                            ".jpg",
+                            ".png",
+                            ".gif",
+                            ".jpeg",
+                            ".webp",
+                            ".svg",
+                            ".ico",
+                            "package-lock.json",
+                            "yarn.lock",
+                            "pnpm-lock.yaml",
+                            "bun.lock",
+                            ".lock",
+                        ]
+                    )
                 ):
                     try:
                         with open(full_path, "r") as f:
