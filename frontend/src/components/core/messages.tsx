@@ -1,7 +1,14 @@
 import type { Message } from "~/components/core/chat";
 import { cn } from "~/lib/utils";
+import { Loader2 } from "lucide-react";
 
-export default function Messages({ messages }: { messages: Message[] }) {
+export default function Messages({
+  messages,
+  isStreaming,
+}: {
+  messages: Message[];
+  isStreaming: boolean;
+}) {
   return (
     <div className="flex-1 space-y-4 p-4">
       {messages.map((message, index) => (
@@ -20,7 +27,11 @@ export default function Messages({ messages }: { messages: Message[] }) {
                 : "bg-blue-500 text-white",
             )}
           >
-            {message.content}
+            {message.role === "assistant" && isStreaming && !message.content ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              message.content
+            )}
           </div>
         </div>
       ))}

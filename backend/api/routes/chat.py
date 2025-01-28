@@ -54,7 +54,7 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
-# Will implement custom model usage later once streaming is setup
+# implement custom model later
 @router.post("/chat/{chat_id}/message")
 async def send_chat_message(
     chat_id: str, request: ChatMessageRequest, db: Session = Depends(get_db)
@@ -115,20 +115,37 @@ async def send_chat_message(
         ]
 
         async def stream_response_content() -> AsyncGenerator[str, None]:
+            assistant_message_content = ""
             async for chunk in chat_model.astream(messages):
                 content = chunk.content
-                yield f"data: {json.dumps({'content': content})}\n\n"
+                assistant_message_content += str(content)
+                yield f"data: {json.dumps({'content': assistant_message_content})}\n\n"
 
-        # save the message to the database pending
+            assistant_message = ChatMessage(
+                id=str(uuid.uuid4()),
+                chat_id=chat_id,
+                message=str(assistant_message_content),
+                role="assistant",
+            )
+            db.add(assistant_message)
+            db.commit()
 
         return StreamingResponse(
             stream_response_content(), media_type="text/event-stream"
         )
     except Exception as e:
         print(f"Error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Error loading embeddings")
+        raise HTTPException(status_code=500, detail="Streaming error")
 
 
 @router.get("/chat/{chat_id}/fetch/messages")
 async def get_chat_messages(chat_id: str, db: Session = Depends(get_db)):
-    pass
+    messages = (
+        db.query(ChatMessage)
+        .filter(ChatMessage.chat_id == chat_id)
+        .order_by(ChatMessage.created_at)
+        .all()
+    )
+    return {
+        "messages": [{"content": msg.message, "role": msg.role} for msg in messages]
+    }

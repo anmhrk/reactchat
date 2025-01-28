@@ -11,9 +11,13 @@ import type { Message } from "./chat";
 export default function ChatInput({
   model,
   onNewMessage,
+  isStreaming,
+  setIsStreaming,
 }: {
   model: string;
   onNewMessage: (message: Message) => void;
+  isStreaming: boolean;
+  setIsStreaming: (isStreaming: boolean) => void;
 }) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -58,6 +62,9 @@ export default function ChatInput({
     };
     onNewMessage(userMessage);
     setInput("");
+    setIsStreaming(true);
+    const assistantMessageId = Date.now().toString();
+    onNewMessage({ id: assistantMessageId, content: "", role: "assistant" });
 
     try {
       const response = await fetch(`${BACKEND_URL}/chat/${chatId}/message`, {
@@ -76,14 +83,11 @@ export default function ChatInput({
         throw new Error("Failed to get reader");
       }
 
-      let done = false;
+      let assistantMessageContent = "";
 
-      while (!done) {
-        const { value, done: streamDone } = await reader.read();
-        done = streamDone;
-        if (done) {
-          break;
-        }
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
         const chunk = new TextDecoder().decode(value);
         const lines = chunk.split("\n\n");
@@ -93,9 +97,10 @@ export default function ChatInput({
             const jsonStr = line.substring(5);
             try {
               const payload = JSON.parse(jsonStr) as { content: string };
-              const contentChunk = payload.content;
+              assistantMessageContent = payload.content;
               onNewMessage({
-                content: contentChunk,
+                id: assistantMessageId,
+                content: assistantMessageContent,
                 role: "assistant",
               });
             } catch (e) {
@@ -107,6 +112,7 @@ export default function ChatInput({
     } catch (error) {
       console.error(error);
     } finally {
+      setIsStreaming(false);
       if (textareaRef.current) {
         textareaRef.current.rows = 4;
       }
@@ -142,7 +148,7 @@ export default function ChatInput({
       />
       <Button
         type="submit"
-        disabled={!input.trim()}
+        disabled={!input.trim() || isStreaming}
         size="icon"
         variant="outline"
         className={cn(
