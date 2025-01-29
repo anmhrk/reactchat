@@ -23,27 +23,28 @@ export default function Messages({
   isStreaming: boolean;
 }) {
   return (
-    <div className="flex-1 space-y-4 p-4">
+    <div className="flex-1 space-y-4 p-4 text-sm">
       {messages.map((message, index) => (
         <div
           key={index}
           className={cn(
-            "flex w-full flex-col gap-2",
+            "flex w-full flex-col",
             message.role === "assistant" ? "items-start" : "items-end",
           )}
         >
           <div
             className={cn(
-              "w-fit max-w-[85%] break-words rounded-lg p-3",
+              "w-fit break-words rounded-lg p-3",
               message.role === "assistant"
                 ? "bg-zinc-100 text-black dark:bg-zinc-900 dark:text-zinc-200"
                 : "bg-blue-500 text-white",
+              "max-w-full",
             )}
           >
             {message.role === "assistant" && isStreaming && !message.content ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <div className="prose prose-sm dark:prose-invert prose-pre:bg-transparent prose-pre:p-0 max-w-full">
+              <div className="prose prose-sm dark:prose-invert prose-pre:bg-transparent prose-pre:p-0 max-w-full overflow-x-auto">
                 <ReactMarkdown components={MarkdownComponents}>
                   {message.content}
                 </ReactMarkdown>
@@ -56,6 +57,7 @@ export default function Messages({
   );
 }
 
+// want to remove wrapLines and wrapLongLines but the code block overflows the container without them
 const Code = React.memo(
   ({ className, children }: { className: string; children: string }) => {
     const { theme } = useTheme();
@@ -63,21 +65,27 @@ const Code = React.memo(
     const isDark = theme === "dark";
 
     return match ? (
-      <div className="overflow-x- max-w-full">
-        <SyntaxHighlighter
-          style={isDark ? oneDark : oneLight}
-          language={match[1]}
-          PreTag="div"
-          className="!my-0 rounded-lg"
-          customStyle={{
-            margin: 0,
-            width: "100%",
-            maxWidth: "100%",
-          }}
-        >
-          {String(children).replace(/\n$/, "")}
-        </SyntaxHighlighter>
-      </div>
+      <SyntaxHighlighter
+        style={isDark ? oneDark : oneLight}
+        language={match[1]}
+        PreTag="div"
+        wrapLines
+        wrapLongLines
+        className="rounded-lg"
+        customStyle={{
+          margin: 0,
+          width: "100%",
+          maxWidth: "100%",
+        }}
+        codeTagProps={{
+          style: {
+            display: "block",
+            overflowX: "auto",
+          },
+        }}
+      >
+        {String(children).replace(/\n$/, "")}
+      </SyntaxHighlighter>
     ) : (
       <code
         className={cn(
@@ -96,10 +104,6 @@ Code.displayName = "Code";
 const MarkdownComponents: Components = {
   // @ts-expect-error - code block
   code: Code,
-
-  pre: ({ children }) => {
-    return <pre className="rounded-lg">{children}</pre>;
-  },
 
   p({ children }) {
     return <p className="mb-4 last:mb-0">{children}</p>;

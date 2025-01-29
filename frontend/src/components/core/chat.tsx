@@ -67,7 +67,7 @@ export default function Chat({ userInfo }: { userInfo: UserInfo }) {
   }, [messages, isStreaming]);
 
   return (
-    <main className="flex w-[600px] flex-1 flex-col">
+    <main className="flex flex-1 flex-col">
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin" />
