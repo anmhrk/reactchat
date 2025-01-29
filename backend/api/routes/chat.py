@@ -6,6 +6,7 @@ from db.config import get_db
 from db.models import Chat, Embedding, ChatMessage
 import uuid
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_anthropic import ChatAnthropic
 import json
 import numpy as np
 from typing import List, AsyncGenerator
@@ -50,11 +51,6 @@ async def validate_chat(
     return {"message": "Chat validated", "status": 200}
 
 
-def cosine_similarity(a: List[float], b: List[float]) -> float:
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
-
-# implement custom model later
 @router.post("/chat/{chat_id}/message")
 async def send_chat_message(
     chat_id: str, request: ChatMessageRequest, db: Session = Depends(get_db)
@@ -81,14 +77,33 @@ async def send_chat_message(
                 status_code=500, detail="Missing embeddings or chunks data"
             )
 
+        def cosine_similarity(a: List[float], b: List[float]) -> float:
+            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+
         similarities = [
             cosine_similarity(question_embedding, chunk_embedding)
             for chunk_embedding in stored_embeddings
         ]
 
-        top_k = 5
+        top_k = 3
         top_indices = np.argsort(similarities)[-top_k:][::-1]
-        context = "\n\n".join([stored_chunks[i] for i in top_indices])
+
+        similarity_threshold = 0.1
+        relevant_chunks = []
+
+        for i in top_indices:
+            if similarities[i] >= similarity_threshold:
+                chunk = stored_chunks[i]
+                if len(chunk) > 500:
+                    chunk = chunk[:500] + "..."
+                relevant_chunks.append(chunk)
+
+        context = "\n---\n".join(relevant_chunks)
+        max_context_length = 4000
+        if len(context) > max_context_length:
+            context = context[:max_context_length] + "..."
+
+        print(f"Context length: {len(context)}")
 
         user_message = ChatMessage(
             id=str(uuid.uuid4()), chat_id=chat_id, message=request.message, role="user"
@@ -97,20 +112,51 @@ async def send_chat_message(
         db.commit()
 
         system_prompt = """
-        You are an expert React developer. You are helping other developers understand open sourceReact codebases. 
-        Answer questions based on the provided code context. Be specific and reference relevant code when appropriate.
-        If you're not sure about something, say so rather than making assumptions.
+        You are an expert React developer helping other developers understand open source React codebases. 
+        
+        When answering questions:
+        1. For specific code questions: Provide detailed answers based on the code.
+        2. For high-level questions: Synthesize information from the code to provide comprehensive overviews.
+        3. For architectural questions: Explain patterns and structures you can identify.
+        4. If you can't see enough context: Ask the user to be more specific while sharing what you do know.
+
+        Important: You can make reasonable inferences about the codebase structure and patterns based on 
+        the code you see. When doing so, clearly indicate what is directly observed versus what is inferred.
+
+        If the user's question is completely unrelated to development or the codebase (like weather, general knowledge, etc), 
+        respond with: "I'm sorry, I can only help with questions about the codebase."
+        Thank you and similar phrases are valid and you should respond appropriately.
+
+        Keep responses clear and well-structured, but don't be overly restrictive in your interpretations.
+        Never mention "available code context" or "codebase context", "filetree" or anything along those lines in your response.
         """
 
-        chat_model = ChatOpenAI(model="gpt-4o-mini", temperature=0, streaming=True)
+        if "claude" in request.model.lower():
+            chat_model = ChatAnthropic(
+                model_name=request.model,
+                temperature=0,
+                streaming=True,
+                timeout=10,
+                stop=None,
+            )
+        else:
+            chat_model = ChatOpenAI(model=request.model, temperature=0, streaming=True)
         messages = [
             {"role": "system", "content": system_prompt},
             {
                 "role": "user",
-                "content": f"""Context from codebase: {context}
-                Question: {request.message}
+                "content": f"""Available code context from the codebase: {context}
 
-                Please provide a detailed answer based on the code context above.""",
+                User's question: {request.message}
+
+                This is the codebase filetree: {chat.file_tree}
+
+                Please provide an answer based on the available context. If it's insufficient for a 
+                complete answer, say something like "Please be more specific with your query".
+                Refer to the filetree also when answering questions.
+                Questions like routing, components, pages, etc should refer to the filetree to help you form
+                a comprehensive answer.
+                """,
             },
         ]
 

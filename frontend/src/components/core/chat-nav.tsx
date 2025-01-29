@@ -37,15 +37,6 @@ export default function ChatNav({
   const params = useParams<{ id: string }>();
   const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/chat/${params.id}`;
 
-  useEffect(() => {
-    const storedModel = window.localStorage.getItem("model");
-    if (storedModel) {
-      setModel(storedModel);
-    } else {
-      window.localStorage.setItem("model", "claude-3-5-sonnet-20241022");
-    }
-  }, [setModel]);
-
   const MENU_ITEMS = [
     {
       icon: <FiShare className="!h-5 !w-5" />,
@@ -68,18 +59,26 @@ export default function ChatNav({
 
   const MODEL_OPTIONS = [
     {
+      name: "GPT 4o",
+      value: "gpt-4o",
+    },
+    {
       name: "Claude 3.5 Sonnet",
       value: "claude-3-5-sonnet-20241022",
     },
-    {
-      name: "GPT 4o mini",
-      value: "gpt-4o-mini",
-    },
-    {
-      name: "Deepseek R1",
-      value: "deepseek-r1",
-    },
   ];
+
+  useEffect(() => {
+    const storedModel = window.localStorage.getItem("model");
+    if (
+      storedModel?.toLowerCase() === "claude-3-5-sonnet-20241022" ||
+      storedModel?.toLowerCase() === "gpt-4o"
+    ) {
+      setModel(storedModel);
+    } else {
+      window.localStorage.setItem("model", "gpt-4o");
+    }
+  }, [setModel]);
 
   return (
     <main className="flex w-full items-center justify-between p-2">

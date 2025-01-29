@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
-  oneDark,
+  dracula,
   oneLight,
 } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import type { Components } from "react-markdown";
@@ -66,14 +66,13 @@ const Code = React.memo(
 
     return match ? (
       <SyntaxHighlighter
-        style={isDark ? oneDark : oneLight}
+        style={isDark ? dracula : oneLight}
         language={match[1]}
         PreTag="div"
         wrapLines
         wrapLongLines
         className="rounded-lg"
         customStyle={{
-          margin: 0,
           width: "100%",
           maxWidth: "100%",
         }}
