@@ -106,7 +106,7 @@ export default function LayoutHelper({
   }
 
   return (
-    <main className="flex h-screen">
+    <main className="flex h-screen overflow-hidden">
       <FileTree />
       <Code />
       <Chat userInfo={userInfo} />

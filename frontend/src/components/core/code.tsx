@@ -233,17 +233,13 @@ export default function Code() {
                   minimap: { enabled: false },
                   scrollBeyondLastLine: false,
                   fontSize: 13,
-                  fontLigatures: true,
-                  lineNumbers: "on",
-                  renderLineHighlight: "all",
-                  wordWrap: "on",
                   automaticLayout: true,
+                  wordWrap: "on",
                   domReadOnly: true,
                   padding: {
                     top: 8,
                     bottom: 8,
                   },
-                  lineNumbersMinChars: 3,
                   scrollbar: {
                     verticalScrollbarSize: 7,
                     horizontalScrollbarSize: 7,
@@ -258,7 +254,6 @@ export default function Code() {
                   cursorBlinking: "solid",
                   cursorSmoothCaretAnimation: "on",
                   renderWhitespace: "selection",
-                  occurrencesHighlight: "off",
                   renderValidationDecorations: "off",
                   hover: { enabled: false },
                 }}
