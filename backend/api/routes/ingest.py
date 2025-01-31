@@ -8,12 +8,10 @@ import uuid
 from sqlalchemy.orm import Session
 from db.config import get_db, SessionLocal
 from db.models import Chat, Embedding
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
-import json
 import logging
 import tiktoken
 from threading import Lock
+from api.rag import create_embeddings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -52,9 +50,7 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
         _, _, package_content = await asyncio.to_thread(
             ingest,
             clean_url,
-            include_patterns=[
-                "package.json",
-            ],
+            include_patterns=["package.json", "README.md"],
         )
 
         if '"react":' not in package_content and "'react':" not in package_content:
@@ -85,83 +81,20 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
         )
 
         chat_id = existing_chat.id if existing_chat else str(uuid.uuid4().hex[:8])
+        repo_info = tree + package_content
 
         if not existing_chat:
             chat = Chat(
                 id=chat_id,
                 github_url=clean_url,
                 user_id=request.userId,
-                file_tree=tree,
+                repo_info=repo_info,
             )
             db.add(chat)
             db.commit()
 
         return {"message": f"/chat/{chat_id}"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-async def create_embeddings(db: Session, chat_id: str, content: str):
-    try:
-        logger.info(f"Starting embedding creation for chat {chat_id}")
-        chat = db.query(Chat).filter(Chat.id == chat_id).first()
-        if not chat:
-            raise HTTPException(status_code=404, detail="Chat not found")
-
-        def tiktoken_len(text: str):
-            encoding = tiktoken.get_encoding("cl100k_base")
-            return len(encoding.encode(text))
-
-        logger.info("Splitting text into chunks...")
-        text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=8000,
-            chunk_overlap=1600,
-            length_function=tiktoken_len,
-            separators=["\n\n", "\n", " ", ""],
-        )
-        chunks = text_splitter.split_text(content)
-        logger.info(f"Created {len(chunks)} chunks")
-        setattr(chat, "total_chunks", len(chunks))
-        setattr(chat, "indexed_chunks", 0)
-        db.commit()
-
-        embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-large",
-        )
-
-        # Saves all embeddings in a list
-        all_embeddings = list()
-        logger.info("Processing chunks and creating embeddings...")
-        for i, chunk in enumerate(chunks):
-            logger.info(f"Processing chunk {i+1}/{len(chunks)}")
-            try:
-                embedding_vector = await embeddings.aembed_query(chunk)
-                all_embeddings.append(embedding_vector)
-                setattr(chat, "indexed_chunks", i + 1)
-                db.commit()
-                logger.info(f"Saved embedding for chunk {i+1}")
-            except Exception as chunk_error:
-                logger.error(f"Error processing chunk {i+1}: {str(chunk_error)}")
-                raise
-
-        embedding = Embedding(
-            id=str(uuid.uuid4()),
-            github_url=chat.github_url,
-            chunks=json.dumps(chunks),
-            embedding=json.dumps(all_embeddings),
-        )
-        db.add(embedding)
-        setattr(chat, "indexing_status", "completed")
-        db.commit()
-
-        logger.info("Embeddings created successfully")
-        return True
-    except Exception as e:
-        logger.error(f"Error in create_embeddings: {str(e)}")
-        chat = db.query(Chat).filter(Chat.id == chat_id).first()
-        if chat:
-            setattr(chat, "indexing_status", "failed")
-            db.commit()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -193,10 +126,26 @@ async def ingest_repo(
         setattr(chat, "indexing_status", "in_progress")
         db.commit()
 
+        skip_files = [
+            "yarn.lock",
+            "bun.lockb",
+            "package-lock.json",
+            "pnpm-lock.yaml",
+            ".gitignore",
+            ".env*",
+            "tsconfig.json",
+            "prettier.config.js",
+            "postcss.config.js",
+            "next.config.js",
+            ".eslintrc",
+            "tailwind.config",
+        ]
+
         try:
             _, _, content = await asyncio.to_thread(
                 ingest,
                 str(chat.github_url),
+                exclude_patterns=skip_files,
             )
 
             # Create a new session for the background task

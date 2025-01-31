@@ -20,7 +20,7 @@ class Chat(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(String, ForeignKey("users.id"))
     is_public = Column(Boolean, default=False)
-    file_tree = Column(String)
+    repo_info = Column(String)
     indexing_status = Column(String, default="not_started")
     total_chunks = Column(Integer, default=0)
     indexed_chunks = Column(Integer, default=0)

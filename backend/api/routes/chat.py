@@ -8,8 +8,8 @@ import uuid
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
 import json
-import numpy as np
-from typing import List, AsyncGenerator
+from typing import AsyncGenerator
+from api.rag import format_context, hybrid_search
 
 router = APIRouter()
 
@@ -77,33 +77,13 @@ async def send_chat_message(
                 status_code=500, detail="Missing embeddings or chunks data"
             )
 
-        def cosine_similarity(a: List[float], b: List[float]) -> float:
-            return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
-
-        similarities = [
-            cosine_similarity(question_embedding, chunk_embedding)
-            for chunk_embedding in stored_embeddings
-        ]
-
-        top_k = 3
-        top_indices = np.argsort(similarities)[-top_k:][::-1]
-
-        similarity_threshold = 0.1
-        relevant_chunks = []
-
-        for i in top_indices:
-            if similarities[i] >= similarity_threshold:
-                chunk = stored_chunks[i]
-                if len(chunk) > 500:
-                    chunk = chunk[:500] + "..."
-                relevant_chunks.append(chunk)
-
-        context = "\n---\n".join(relevant_chunks)
-        max_context_length = 4000
-        if len(context) > max_context_length:
-            context = context[:max_context_length] + "..."
-
-        print(f"Context length: {len(context)}")
+        relevant_chunks = await hybrid_search(
+            question=request.message,
+            chunks=stored_chunks,
+            embeddings=stored_embeddings,
+            question_embedding=question_embedding,
+        )
+        context = format_context(relevant_chunks, request.message)
 
         user_message = ChatMessage(
             id=str(uuid.uuid4()), chat_id=chat_id, message=request.message, role="user"
@@ -124,11 +104,13 @@ async def send_chat_message(
         the code you see. When doing so, clearly indicate what is directly observed versus what is inferred.
 
         If the user's question is completely unrelated to development or the codebase (like weather, general knowledge, etc), 
-        respond with: "I'm sorry, I can only help with questions about the codebase."
+        or it just doesn't make sense, respond with: "I'm sorry, I can only help with questions about the codebase."
         Thank you and similar phrases are valid and you should respond appropriately.
 
         Keep responses clear and well-structured, but don't be overly restrictive in your interpretations.
-        Never mention "available code context" or "codebase context", "filetree" or anything along those lines in your response.
+        
+        IMPORTANT:
+        Never mention "available code context" or "codebase context", "filetree", "code snippets" or anything along those lines in your response.
         """
 
         if "claude" in request.model.lower():
@@ -141,6 +123,7 @@ async def send_chat_message(
             )
         else:
             chat_model = ChatOpenAI(model=request.model, temperature=0, streaming=True)
+
         messages = [
             {"role": "system", "content": system_prompt},
             {
@@ -149,13 +132,12 @@ async def send_chat_message(
 
                 User's question: {request.message}
 
-                This is the codebase filetree: {chat.file_tree}
+                This is extra information about the codebase which contains the filetree, package.json, and README.md: {chat.repo_info}
 
                 Please provide an answer based on the available context. If it's insufficient for a 
                 complete answer, say something like "Please be more specific with your query".
-                Refer to the filetree also when answering questions.
-                Questions like routing, components, pages, etc should refer to the filetree to help you form
-                a comprehensive answer.
+                Refer to the extra information also when answering questions as it should help you form
+                a more comprehensive answer.
                 """,
             },
         ]
@@ -192,6 +174,7 @@ async def get_chat_messages(chat_id: str, db: Session = Depends(get_db)):
         .order_by(ChatMessage.created_at)
         .all()
     )
+
     return {
         "messages": [{"content": msg.message, "role": msg.role} for msg in messages]
     }
