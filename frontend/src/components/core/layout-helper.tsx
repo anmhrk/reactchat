@@ -9,7 +9,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Progress } from "~/components/ui/progress";
 
-const POLL_INTERVAL = 1000; // 1 second
+const POLL_INTERVAL = 1000; // poll every second
 
 export default function LayoutHelper({
   userInfo,
@@ -24,8 +24,10 @@ export default function LayoutHelper({
   const params = useParams<{ id: string }>();
   const chatId = params.id;
   const pollingRef = useRef<NodeJS.Timeout>();
-
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+  console.log(initialStatus);
+  console.log(indexingStatus);
 
   const pollIndexingStatus = useCallback(async () => {
     try {
@@ -68,6 +70,7 @@ export default function LayoutHelper({
 
           if (data.status === "completed") {
             setIndexingStatus("completed");
+            window.location.reload();
           } else if (data.status === "in_progress") {
             setIndexingStatus("in_progress");
             void pollIndexingStatus();
@@ -90,15 +93,16 @@ export default function LayoutHelper({
     };
   }, [indexingStatus, BACKEND_URL, chatId, pollIndexingStatus]);
 
-  if (indexingStatus === "in_progress" || indexingStatus === "not_started") {
+  if (
+    (initialStatus === "not_started" || initialStatus === "in_progress") &&
+    (indexingStatus === undefined || indexingStatus === "in_progress")
+  ) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center justify-center gap-6">
           <Progress value={progress} className="w-[180px]" />
           <p className="text-md text-zinc-500 dark:text-zinc-400">
-            {indexingStatus === "not_started"
-              ? "Preparing to index codebase..."
-              : `Indexing codebase (${Math.round(progress)}%)... Please wait.`}
+            {`Indexing codebase (${Math.round(progress)}%)... Please wait.`}
           </p>
         </div>
       </div>

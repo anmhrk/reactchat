@@ -16,7 +16,7 @@ export type Message = {
 };
 
 export default function Chat({ userInfo }: { userInfo: UserInfo }) {
-  const [model, setModel] = useState<string>("claude-3-5-sonnet-20241022");
+  const [model, setModel] = useState<string>("gpt-4o");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);

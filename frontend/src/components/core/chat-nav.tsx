@@ -71,8 +71,8 @@ export default function ChatNav({
   useEffect(() => {
     const storedModel = window.localStorage.getItem("model");
     if (
-      storedModel?.toLowerCase() === "claude-3-5-sonnet-20241022" ||
-      storedModel?.toLowerCase() === "gpt-4o"
+      storedModel === "claude-3-5-sonnet-20241022" ||
+      storedModel === "gpt-4o"
     ) {
       setModel(storedModel);
     } else {
