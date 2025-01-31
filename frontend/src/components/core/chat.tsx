@@ -8,6 +8,7 @@ import Messages from "./messages";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import type { SelectedContext } from "./layout-helper";
 
 export type Message = {
   id?: string;
@@ -15,7 +16,15 @@ export type Message = {
   role: "user" | "assistant";
 };
 
-export default function Chat({ userInfo }: { userInfo: UserInfo }) {
+export default function Chat({
+  userInfo,
+  selectedContext,
+  setSelectedContext,
+}: {
+  userInfo: UserInfo;
+  selectedContext: SelectedContext;
+  setSelectedContext: React.Dispatch<React.SetStateAction<SelectedContext>>;
+}) {
   const [model, setModel] = useState<string>("gpt-4o");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +92,8 @@ export default function Chat({ userInfo }: { userInfo: UserInfo }) {
             onNewMessage={handleNewMessage}
             isStreaming={isStreaming}
             setIsStreaming={setIsStreaming}
+            selectedContext={selectedContext}
+            setSelectedContext={setSelectedContext}
           />
         </>
       )}

@@ -11,6 +11,8 @@ import { Progress } from "~/components/ui/progress";
 
 const POLL_INTERVAL = 1000; // poll every second
 
+export type SelectedContext = Record<string, string[]>; // { file_path: [code_snippet] }
+
 export default function LayoutHelper({
   userInfo,
   initialStatus,
@@ -21,13 +23,11 @@ export default function LayoutHelper({
   const [indexingStatus, setIndexingStatus] =
     useState<IngestStatus>(initialStatus);
   const [progress, setProgress] = useState(0);
+  const [selectedContext, setSelectedContext] = useState<SelectedContext>({});
   const params = useParams<{ id: string }>();
   const chatId = params.id;
   const pollingRef = useRef<NodeJS.Timeout>();
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-  console.log(initialStatus);
-  console.log(indexingStatus);
 
   const pollIndexingStatus = useCallback(async () => {
     try {
@@ -112,8 +112,12 @@ export default function LayoutHelper({
   return (
     <main className="flex h-screen">
       <FileTree />
-      <Code />
-      <Chat userInfo={userInfo} />
+      <Code setSelectedContext={setSelectedContext} />
+      <Chat
+        userInfo={userInfo}
+        selectedContext={selectedContext}
+        setSelectedContext={setSelectedContext}
+      />
     </main>
   );
 }

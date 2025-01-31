@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 "use client";
 
@@ -12,15 +14,19 @@ import { getRepo } from "~/lib/db";
 import { Skeleton } from "../ui/skeleton";
 import { useClerk } from "@clerk/nextjs";
 import Link from "next/link";
+import type { SelectedContext } from "./layout-helper";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "~/components/ui/tooltip";
 
-export default function Code() {
-  const params = useParams<{ id: string }>();
-  const searchParams = useSearchParams();
-  const file = searchParams.get("file");
-  const { theme } = useTheme();
-  const isDarkMode = theme === "dark";
-  const clerk = useClerk();
-
+export default function Code({
+  setSelectedContext,
+}: {
+  setSelectedContext: React.Dispatch<React.SetStateAction<SelectedContext>>;
+}) {
   const [code, setCode] = useState<string>("");
   const [repoName, setRepoName] = useState<string>("");
   const [language, setLanguage] = useState<string>("typescript");
@@ -28,6 +34,18 @@ export default function Code() {
   const [isPathNotFound, setIsPathNotFound] = useState(false);
   const [shouldTruncate, setShouldTruncate] = useState(false);
   const pathContainerRef = useRef<HTMLDivElement>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    x: number;
+    y: number;
+    show: boolean;
+  }>({ x: 0, y: 0, show: false });
+
+  const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const file = searchParams.get("file");
+  const { theme } = useTheme();
+  const isDarkMode = theme === "dark";
+  const clerk = useClerk();
 
   const beforeMount = (monaco: Monaco) => {
     monaco.editor.defineTheme("custom-dark", {
@@ -52,6 +70,72 @@ export default function Code() {
       noSuggestionDiagnostics: true,
       diagnosticCodesToIgnore: [7027],
     });
+  };
+
+  const onMount = (editor: any) => {
+    let cleanup: (() => void) | null = null;
+
+    editor.onDidChangeCursorSelection(() => {
+      const selection = editor.getSelection();
+      const selectedText = editor.getModel().getValueInRange(selection);
+
+      if (cleanup) {
+        cleanup();
+      }
+
+      if (selectedText) {
+        const startPosition = selection.getStartPosition();
+        const coordinates = editor.getScrolledVisiblePosition(startPosition);
+        const editorDomNode = editor.getDomNode();
+
+        if (coordinates && editorDomNode) {
+          const editorRect = editorDomNode.getBoundingClientRect();
+          const x = editorRect.left + coordinates.left;
+          const y = editorRect.top + coordinates.top;
+
+          setTooltipPosition({
+            x,
+            y,
+            show: true,
+          });
+        }
+
+        const handleKeyPress = (e: KeyboardEvent) => {
+          if (e.key.toLowerCase() === "q") {
+            setSelectedContext((prev: SelectedContext) => {
+              const newContext: SelectedContext = { ...prev };
+
+              // if this file path already exists in the context
+              if (file && file in newContext) {
+                // add the new selection to the existing array
+                newContext[file] = [...newContext[file]!, selectedText];
+              } else {
+                // else create a new array with this selection
+                newContext[file!] = [selectedText];
+              }
+              return newContext;
+            });
+
+            setTooltipPosition((prev) => ({ ...prev, show: false }));
+          }
+        };
+
+        document.addEventListener("keydown", handleKeyPress);
+
+        cleanup = () => {
+          setTooltipPosition((prev) => ({ ...prev, show: false }));
+          document.removeEventListener("keydown", handleKeyPress);
+        };
+      } else {
+        setTooltipPosition((prev) => ({ ...prev, show: false }));
+      }
+    });
+
+    return () => {
+      if (cleanup) {
+        cleanup();
+      }
+    };
   };
 
   useEffect(() => {
@@ -190,6 +274,31 @@ export default function Code() {
 
   return (
     <main className="hidden flex-1 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#09090B] md:block">
+      {tooltipPosition.show && (
+        <div
+          className="fixed z-50"
+          style={{
+            left: tooltipPosition.x,
+            top: tooltipPosition.y,
+          }}
+        >
+          <TooltipProvider>
+            <Tooltip defaultOpen>
+              <TooltipTrigger asChild>
+                <div className="h-1 w-1" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-sm font-semibold">
+                Press
+                <p className="ml-1 mr-1 inline-block rounded-lg bg-zinc-600 px-2 dark:bg-zinc-300">
+                  Q
+                </p>
+                to quote
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )}
+
       {!file || isPathNotFound ? (
         <div className="flex h-screen flex-col items-center justify-center space-y-3 text-center">
           <FaReact className="mx-auto h-24 w-24 text-[#58C4DC]" />
@@ -228,6 +337,7 @@ export default function Code() {
                 theme={isDarkMode ? "custom-dark" : "light"}
                 value={code}
                 beforeMount={beforeMount}
+                onMount={onMount}
                 options={{
                   readOnly: true,
                   minimap: { enabled: false },

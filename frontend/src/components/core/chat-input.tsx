@@ -7,17 +7,23 @@ import { FaArrowUp } from "react-icons/fa6";
 import { cn } from "~/lib/utils";
 import { useParams } from "next/navigation";
 import type { Message } from "./chat";
+import type { SelectedContext } from "./layout-helper";
+import { X } from "lucide-react";
 
 export default function ChatInput({
   model,
   onNewMessage,
   isStreaming,
   setIsStreaming,
+  selectedContext,
+  setSelectedContext,
 }: {
   model: string;
   onNewMessage: (message: Message) => void;
   isStreaming: boolean;
   setIsStreaming: (isStreaming: boolean) => void;
+  selectedContext: SelectedContext;
+  setSelectedContext: React.Dispatch<React.SetStateAction<SelectedContext>>;
 }) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -42,7 +48,7 @@ export default function ChatInput({
     const charsPerLine = Math.floor(contentWidth / characterWidth);
     const wrappedLines = Math.ceil(textarea.value.length / charsPerLine);
 
-    const totalRows = Math.max(4, Math.min(lineBreaks + wrappedLines, 20));
+    const totalRows = Math.max(3, Math.min(lineBreaks + wrappedLines, 15));
 
     textarea.rows = totalRows;
   };
@@ -72,7 +78,11 @@ export default function ChatInput({
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: input, model }),
+        body: JSON.stringify({
+          message: input,
+          model,
+          selected_context: selectedContext,
+        }),
       });
       if (!response.ok) {
         throw new Error("Failed to send message");
@@ -128,45 +138,82 @@ export default function ChatInput({
   };
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className="relative flex w-full items-end gap-2 p-3"
-    >
-      <Textarea
-        ref={textareaRef}
-        name="message"
-        placeholder="Ask a question..."
-        className="w-full resize-none rounded-lg border border-zinc-200 bg-[#FAFAFA] p-3 pr-14 focus-visible:ring-0 dark:border-zinc-800 dark:bg-[#141415]"
-        rows={4}
-        value={input}
-        onChange={handleInput}
-        onKeyDown={handleKeyDown}
-        style={{
-          maxHeight: "480px",
-        }}
-      />
-      <Button
-        type="submit"
-        disabled={!input.trim() || isStreaming}
-        size="icon"
-        variant="outline"
-        className={cn(
-          "absolute right-5 top-1/2 h-8 w-8 shrink-0 translate-y-1/3 rounded-xl border-zinc-300 transition-all duration-300 dark:border-zinc-700",
-          input.trim()
-            ? "bg-black dark:bg-white"
-            : "bg-[#F4F4F5] dark:bg-[#1F1F22]",
-        )}
+    <div className="flex w-full flex-col gap-2 p-3">
+      <form
+        ref={formRef}
+        onSubmit={handleSubmit}
+        className="flex flex-col gap-0"
       >
-        <FaArrowUp
-          className={cn(
-            "h-4 w-4",
-            input.trim()
-              ? "text-white dark:text-black"
-              : "text-black dark:text-white",
-          )}
+        <Textarea
+          ref={textareaRef}
+          name="message"
+          placeholder="Ask a question..."
+          className="w-full resize-none rounded-t-lg border border-zinc-200 bg-[#FAFAFA] p-3 focus-visible:ring-0 dark:border-zinc-800 dark:bg-[#141415]"
+          rows={3}
+          value={input}
+          onChange={handleInput}
+          onKeyDown={handleKeyDown}
+          style={{
+            maxHeight: "480px",
+            borderBottomLeftRadius: "0",
+            borderBottomRightRadius: "0",
+            borderBottom: "none",
+          }}
         />
-      </Button>
-    </form>
+        <div className="flex w-full items-center justify-between rounded-b-lg border border-t-0 border-zinc-200 bg-[#FAFAFA] p-2 dark:border-zinc-800 dark:bg-[#141415]">
+          {selectedContext && Object.keys(selectedContext).length > 0 ? (
+            <>
+              <div className="flex items-center justify-center text-sm text-zinc-500 dark:text-zinc-400">
+                {Object.entries(selectedContext).reduce(
+                  (total, [_, selections]) => total + selections.length,
+                  0,
+                )}{" "}
+                code snippet
+                {Object.entries(selectedContext).reduce(
+                  (total, [_, selections]) => total + selections.length,
+                  0,
+                ) === 1
+                  ? ""
+                  : "s"}{" "}
+                added as context
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-2 h-4 w-4 bg-[#FAFAFA] hover:bg-[#FAFAFA] hover:text-red-500 dark:bg-[#141415] dark:hover:bg-[#141415]"
+                  onClick={() => {
+                    setSelectedContext({});
+                  }}
+                >
+                  <X />
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div></div>
+          )}
+          <Button
+            type="submit"
+            disabled={!input.trim() || isStreaming}
+            size="icon"
+            variant="outline"
+            className={cn(
+              "h-8 w-8 shrink-0 rounded-xl border-zinc-300 transition-all duration-300 dark:border-zinc-700",
+              input.trim()
+                ? "bg-black dark:bg-white"
+                : "bg-[#F4F4F5] dark:bg-[#1F1F22]",
+            )}
+          >
+            <FaArrowUp
+              className={cn(
+                "h-4 w-4",
+                input.trim()
+                  ? "text-white dark:text-black"
+                  : "text-black dark:text-white",
+              )}
+            />
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 }

@@ -21,6 +21,7 @@ class UserRequestBody(BaseModel):
 class ChatMessageRequest(BaseModel):
     message: str
     model: str
+    selected_context: dict | None
 
 
 @router.post("/chat/recents")
@@ -107,9 +108,13 @@ async def send_chat_message(
         or it just doesn't make sense, respond with: "I'm sorry, I can only help with questions about the codebase."
         Thank you and similar phrases are valid and you should respond appropriately.
 
+        VERY IMPORTANT:
+        If the user provides a code snippet, use it as context OVER the codebase context. For example, if the user asks "what is the purpose of the `useEffect` hook in this code?", 
+        and the user provides a code snippet, use it as context. If the user doesn't provide a code snippet, use the codebase context.
+
+        If the user asks "what can you do?" or something similar, respond with: "I can help you understand this codebase. Ask me anything about it!"
         Keep responses clear and well-structured, but don't be overly restrictive in your interpretations.
         
-        IMPORTANT:
         Never mention "available code context" or "codebase context", "filetree", "code snippets" or anything along those lines in your response.
         """
 
@@ -129,6 +134,7 @@ async def send_chat_message(
             {
                 "role": "user",
                 "content": f"""Available code context from the codebase: {context}
+                {f"User-selected code snippet(s): {request.selected_context}" if request.selected_context else ""}
 
                 User's question: {request.message}
 
