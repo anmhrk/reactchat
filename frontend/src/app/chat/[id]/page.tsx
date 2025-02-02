@@ -8,6 +8,11 @@ export type IngestStatus =
   | "completed"
   | "failed";
 
+export type ChatStatus = {
+  is_public: boolean;
+  is_bookmarked: boolean;
+};
+
 export default async function Page({
   params,
 }: {
@@ -43,9 +48,17 @@ export default async function Page({
     }
   }
 
+  const chatStatus = (await chat.json()) as ChatStatus;
+
   // Fetch indexing status on server
   const statusResponse = await fetch(`${BACKEND_URL}/ingest/${chatId}/status`);
   const { status } = (await statusResponse.json()) as { status: IngestStatus };
 
-  return <LayoutHelper userInfo={userInfo} initialStatus={status} />;
+  return (
+    <LayoutHelper
+      userInfo={userInfo}
+      initialStatus={status}
+      initialChatStatus={chatStatus}
+    />
+  );
 }

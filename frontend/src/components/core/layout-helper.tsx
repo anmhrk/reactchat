@@ -1,7 +1,7 @@
 "use client";
 
 import type { UserInfo } from "~/lib/types";
-import type { IngestStatus } from "~/app/chat/[id]/page";
+import type { ChatStatus, IngestStatus } from "~/app/chat/[id]/page";
 import Chat from "./chat";
 import Code from "./code";
 import FileTree from "./file-tree";
@@ -16,14 +16,17 @@ export type SelectedContext = Record<string, string[]>; // { file_path: [code_sn
 export default function LayoutHelper({
   userInfo,
   initialStatus,
+  initialChatStatus,
 }: {
   userInfo: UserInfo;
   initialStatus: IngestStatus;
+  initialChatStatus: ChatStatus;
 }) {
   const [indexingStatus, setIndexingStatus] =
     useState<IngestStatus>(initialStatus);
   const [progress, setProgress] = useState(0);
   const [selectedContext, setSelectedContext] = useState<SelectedContext>({});
+  const [chatStatus, setChatStatus] = useState<ChatStatus>(initialChatStatus);
   const params = useParams<{ id: string }>();
   const chatId = params.id;
   const pollingRef = useRef<NodeJS.Timeout>();
@@ -117,6 +120,8 @@ export default function LayoutHelper({
         userInfo={userInfo}
         selectedContext={selectedContext}
         setSelectedContext={setSelectedContext}
+        chatStatus={chatStatus}
+        setChatStatus={setChatStatus}
       />
     </main>
   );

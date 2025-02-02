@@ -33,6 +33,8 @@ async def get_recents(request: UserRequestBody, db: Session = Depends(get_db)):
                 "id": chat.id,
                 "github_url": chat.github_url,
                 "created_at": chat.created_at,
+                "is_bookmarked": chat.is_bookmarked,
+                "is_public": chat.is_public,
             }
             for chat in chats
         ]
@@ -49,7 +51,12 @@ async def validate_chat(
     if str(chat.user_id) != str(request.user_id):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    return {"message": "Chat validated", "status": 200}
+    return {
+        "message": "Chat validated",
+        "is_public": chat.is_public,
+        "is_bookmarked": chat.is_bookmarked,
+        "status": 200,
+    }
 
 
 @router.post("/chat/{chat_id}/message")
@@ -134,7 +141,7 @@ async def send_chat_message(
             {
                 "role": "user",
                 "content": f"""Available code context from the codebase: {context}
-                {f"User-selected code snippet(s): {request.selected_context}" if request.selected_context else ""}
+                User-selected code snippet(s): {request.selected_context if request.selected_context else "None"}
 
                 User's question: {request.message}
 
@@ -184,3 +191,63 @@ async def get_chat_messages(chat_id: str, db: Session = Depends(get_db)):
     return {
         "messages": [{"content": msg.message, "role": msg.role} for msg in messages]
     }
+
+
+@router.post("/chat/{chat_id}/bookmark")
+async def bookmark_chat(
+    chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
+        .first()
+    )
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    setattr(chat, "is_bookmarked", not getattr(chat, "is_bookmarked"))
+    db.commit()
+
+    action = "unbookmarked" if not getattr(chat, "is_bookmarked") else "bookmarked"
+    return {"message": f"Chat {action}", "status": 200}
+
+
+@router.post("/chat/{chat_id}/public")
+async def make_chat_public_or_private(
+    chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
+        .first()
+    )
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    new_state = not getattr(chat, "is_public")
+    setattr(chat, "is_public", new_state)
+    db.commit()
+
+    action = "public" if new_state else "private"
+    return {"message": f"{action}", "status": 200}
+
+
+@router.post("/chat/{chat_id}/delete")
+async def delete_chat(
+    chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
+):
+    chat = (
+        db.query(Chat)
+        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
+        .first()
+    )
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    messages = db.query(ChatMessage).filter(ChatMessage.chat_id == chat_id).all()
+    for message in messages:
+        db.delete(message)
+
+    db.delete(chat)
+    db.commit()
+    return {"message": "Chat deleted", "status": 200}

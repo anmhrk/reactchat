@@ -8,12 +8,14 @@ import {
 } from "../ui/dropdown-menu";
 import { UserDropdown } from "../user-dropdown";
 import { ThemeToggle } from "../theme-toggle";
-import { FiShare, FiDelete } from "react-icons/fi";
-import { FaRegBookmark } from "react-icons/fa6";
+import { FiDelete } from "react-icons/fi";
+import { LuBookmarkX, LuBookmarkCheck } from "react-icons/lu";
+import { MdPublic } from "react-icons/md";
+import { IoLockClosed } from "react-icons/io5";
 import { HiOutlineChevronDoubleLeft } from "react-icons/hi";
 import { BsThreeDots } from "react-icons/bs";
 import { Button } from "../ui/button";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useEffect } from "react";
 import {
@@ -24,36 +26,80 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import type { ChatStatus } from "~/app/chat/[id]/page";
 
 export default function ChatNav({
   userInfo,
   model,
   setModel,
+  chatStatus,
+  setChatStatus,
 }: {
   userInfo: UserInfo;
   model: string;
   setModel: (model: string) => void;
+  chatStatus: ChatStatus;
+  setChatStatus: (chatStatus: ChatStatus) => void;
 }) {
   const params = useParams<{ id: string }>();
-  const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/chat/${params.id}`;
-
+  const chatId = params.id;
+  const router = useRouter();
   const MENU_ITEMS = [
-    {
-      icon: <FiShare className="!h-5 !w-5" />,
-      label: "Share",
-      onClick: () => handleShare(shareUrl),
-    },
-    {
-      icon: <FaRegBookmark className="!h-5 !w-5" />,
-      label: "Bookmark",
-      onClick: () => handleBookmark(),
-    },
+    chatStatus.is_public
+      ? {
+          icon: <IoLockClosed className="!h-5 !w-5" />,
+          label: "Make Private",
+          onClick: async () => {
+            await handleMakeChatPublicOrPrivate(chatId, userInfo.id!);
+            setChatStatus({
+              is_public: false,
+              is_bookmarked: chatStatus.is_bookmarked,
+            });
+          },
+        }
+      : {
+          icon: <MdPublic className="!h-5 !w-5" />,
+          label: "Make Public",
+          onClick: async () => {
+            await handleMakeChatPublicOrPrivate(chatId, userInfo.id!);
+            setChatStatus({
+              is_public: true,
+              is_bookmarked: chatStatus.is_bookmarked,
+            });
+          },
+        },
+    chatStatus.is_bookmarked
+      ? {
+          icon: <LuBookmarkX className="!h-5 !w-5" />,
+          label: "Unbookmark",
+          onClick: async () => {
+            await handleBookmark(chatId, userInfo.id!);
+            setChatStatus({
+              is_public: chatStatus.is_public,
+              is_bookmarked: false,
+            });
+          },
+        }
+      : {
+          icon: <LuBookmarkCheck className="!h-5 !w-5" />,
+          label: "Bookmark",
+          onClick: async () => {
+            await handleBookmark(chatId, userInfo.id!);
+            setChatStatus({
+              is_public: chatStatus.is_public,
+              is_bookmarked: true,
+            });
+          },
+        },
     {
       icon: <FiDelete className="!h-5 !w-5" />,
       label: "Delete",
       className:
         "text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-950/50 dark:hover:text-red-300 dark:focus:bg-red-950/50 dark:focus:text-red-300",
-      onClick: () => handleDelete(),
+      onClick: async () => {
+        await handleDelete(chatId, userInfo.id!);
+        router.push("/");
+      },
     },
   ];
 
@@ -166,16 +212,89 @@ export default function ChatNav({
   );
 }
 
-export async function handleShare(shareUrl: string) {
-  // Todo: implement sharing on backend, make chat id public, then fix middleware
-  await navigator.clipboard.writeText(shareUrl);
-  toast.success("Link copied to clipboard");
+export async function handleMakeChatPublicOrPrivate(
+  chatId: string,
+  userId: string,
+) {
+  const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/chat/${chatId}`;
+  try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/public`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+        }),
+      },
+    );
+    const data = (await response.json()) as { message: string; status: number };
+
+    if (data.message === "public") {
+      toast.success("Chat is now public + link copied to clipboard");
+      await navigator.clipboard.writeText(shareUrl);
+    } else {
+      toast.success("Chat is now private");
+    }
+  } catch (error) {
+    toast.error((error as Error).message);
+  }
 }
 
-export async function handleBookmark() {
-  // Todo: implement bookmarking
+export async function handleBookmark(chatId: string, userId: string) {
+  try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/bookmark`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+        }),
+      },
+    );
+    const data = (await response.json()) as { message: string; status: number };
+
+    toast.success(data.message);
+  } catch (error) {
+    toast.error((error as Error).message);
+  }
 }
 
-export async function handleDelete() {
-  // Todo: implement deleting chat
+export async function handleDelete(chatId: string, userId: string) {
+  try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/delete`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+        }),
+      },
+    );
+    const data = (await response.json()) as { message: string; status: number };
+
+    toast.success(data.message);
+  } catch (error) {
+    toast.error((error as Error).message);
+  }
 }

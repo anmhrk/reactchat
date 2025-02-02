@@ -18,9 +18,19 @@ import { IoSearchOutline } from "react-icons/io5";
 import { Button } from "~/components/ui/button";
 import { FiShare, FiDelete } from "react-icons/fi";
 import { FaRegBookmark } from "react-icons/fa";
-import { handleBookmark, handleDelete, handleShare } from "./core/chat-nav";
+import {
+  handleBookmark,
+  handleDelete,
+  handleMakeChatPublicOrPrivate,
+} from "./core/chat-nav";
 
-export function Recents({ chats }: { chats: RecentChat[] }) {
+export function Recents({
+  chats,
+  userId,
+}: {
+  chats: RecentChat[];
+  userId: string | null;
+}) {
   const pathname = usePathname();
   const isRecentsPage = pathname === "/recents";
   const [search, setSearch] = useState("");
@@ -88,9 +98,7 @@ export function Recents({ chats }: { chats: RecentChat[] }) {
                       className="h-8 w-8 p-0 text-zinc-600 hover:!bg-zinc-100 dark:text-zinc-300 dark:hover:!bg-zinc-800"
                       onClick={async (e) => {
                         e.preventDefault();
-
-                        const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/chat/${chat.id}`;
-                        await handleShare(shareUrl);
+                        await handleMakeChatPublicOrPrivate(chat.id, userId!);
                       }}
                     >
                       <FiShare className="h-4 w-4" />
@@ -101,7 +109,7 @@ export function Recents({ chats }: { chats: RecentChat[] }) {
                       className="h-8 w-8 p-0 text-zinc-600 hover:!bg-zinc-100 dark:text-zinc-300 dark:hover:!bg-zinc-800"
                       onClick={async (e) => {
                         e.preventDefault();
-                        await handleBookmark();
+                        await handleBookmark(chat.id, userId!);
                       }}
                     >
                       <FaRegBookmark className="h-4 w-4" />
@@ -112,7 +120,7 @@ export function Recents({ chats }: { chats: RecentChat[] }) {
                       className="h-8 w-8 p-0 text-red-600 hover:!bg-zinc-100 hover:text-red-700 dark:text-red-400 dark:hover:!bg-zinc-800 dark:hover:text-red-300"
                       onClick={async (e) => {
                         e.preventDefault();
-                        await handleDelete();
+                        await handleDelete(chat.id, userId!);
                       }}
                     >
                       <FiDelete className="h-4 w-4" />

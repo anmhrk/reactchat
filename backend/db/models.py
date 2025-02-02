@@ -24,13 +24,14 @@ class Chat(Base):
     indexing_status = Column(String, default="not_started")
     total_chunks = Column(Integer, default=0)
     indexed_chunks = Column(Integer, default=0)
+    is_bookmarked = Column(Boolean, default=False)
 
 
 class Embedding(Base):
     __tablename__ = "embeddings"
 
     id = Column(String, primary_key=True, index=True)
-    github_url = Column(String, ForeignKey("chats.github_url"), index=True)
+    github_url = Column(String, index=True)
     chunks = Column(JSON)
     embedding = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

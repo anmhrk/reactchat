@@ -9,6 +9,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { SelectedContext } from "./layout-helper";
+import type { ChatStatus } from "~/app/chat/[id]/page";
 
 export type Message = {
   id?: string;
@@ -20,10 +21,14 @@ export default function Chat({
   userInfo,
   selectedContext,
   setSelectedContext,
+  chatStatus,
+  setChatStatus,
 }: {
   userInfo: UserInfo;
   selectedContext: SelectedContext;
   setSelectedContext: React.Dispatch<React.SetStateAction<SelectedContext>>;
+  chatStatus: ChatStatus;
+  setChatStatus: (chatStatus: ChatStatus) => void;
 }) {
   const [model, setModel] = useState<string>("gpt-4o");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -83,7 +88,13 @@ export default function Chat({
         </div>
       ) : (
         <>
-          <ChatNav userInfo={userInfo} model={model} setModel={setModel} />
+          <ChatNav
+            userInfo={userInfo}
+            model={model}
+            setModel={setModel}
+            chatStatus={chatStatus}
+            setChatStatus={setChatStatus}
+          />
           <ScrollArea className="flex-1" ref={scrollAreaRef}>
             <Messages messages={messages} isStreaming={isStreaming} />
           </ScrollArea>
