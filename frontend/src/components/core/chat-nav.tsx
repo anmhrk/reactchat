@@ -279,6 +279,7 @@ export async function handleDelete(chatId: string, userId: string) {
       throw new Error("User ID is required");
     }
 
+    toast.loading("Deleting chat...");
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/delete`,
       {
@@ -293,8 +294,10 @@ export async function handleDelete(chatId: string, userId: string) {
     );
     const data = (await response.json()) as { message: string; status: number };
 
+    toast.dismiss();
     toast.success(data.message);
   } catch (error) {
+    toast.dismiss();
     toast.error((error as Error).message);
   }
 }

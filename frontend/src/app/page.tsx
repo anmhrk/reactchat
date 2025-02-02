@@ -38,7 +38,7 @@ export default async function HomePage() {
         </p>
         <SearchBar userId={userId} />
       </div>
-      {chats.length > 0 && <Recents chats={chats} />}
+      {chats.length > 0 && <Recents recentChats={chats} userId={userId} />}
     </PageWrapper>
   );
 }

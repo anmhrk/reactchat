@@ -26,7 +26,7 @@ export default async function RecentsPage() {
 
   return (
     <PageWrapper className="items-center">
-      <Recents chats={chats} userId={userId} />
+      <Recents recentChats={chats} userId={userId} />
     </PageWrapper>
   );
 }

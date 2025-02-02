@@ -48,6 +48,14 @@ export default function Chat({
       if (response.ok) {
         const data = (await response.json()) as { messages: Message[] };
         setMessages(data.messages);
+        setTimeout(() => {
+          const scrollContainer = scrollAreaRef.current?.querySelector(
+            "[data-radix-scroll-area-viewport]",
+          );
+          if (scrollContainer) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          }
+        }, 100);
       }
       setIsLoading(false);
     };
@@ -69,7 +77,6 @@ export default function Chat({
     });
   }, []);
 
-  // doesn't allow the user to scroll up when streaming, fix needed
   useEffect(() => {
     if (!isStreaming) return;
     const scrollContainer = scrollAreaRef.current?.querySelector(

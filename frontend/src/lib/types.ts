@@ -17,4 +17,6 @@ export interface RecentChat {
   id: string;
   github_url: string;
   created_at: string;
+  is_public: boolean;
+  is_bookmarked: boolean;
 }

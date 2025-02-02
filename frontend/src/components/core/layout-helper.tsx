@@ -96,10 +96,21 @@ export default function LayoutHelper({
     };
   }, [indexingStatus, BACKEND_URL, chatId, pollIndexingStatus]);
 
-  if (
-    (initialStatus === "not_started" || initialStatus === "in_progress") &&
-    (indexingStatus === undefined || indexingStatus === "in_progress")
-  ) {
+  if (indexingStatus === "completed") {
+    return (
+      <main className="flex h-screen">
+        <FileTree />
+        <Code setSelectedContext={setSelectedContext} />
+        <Chat
+          userInfo={userInfo}
+          selectedContext={selectedContext}
+          setSelectedContext={setSelectedContext}
+          chatStatus={chatStatus}
+          setChatStatus={setChatStatus}
+        />
+      </main>
+    );
+  } else if (indexingStatus === undefined || indexingStatus === "in_progress") {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center justify-center gap-6">
@@ -110,19 +121,7 @@ export default function LayoutHelper({
         </div>
       </div>
     );
+  } else if (indexingStatus === "failed") {
+    return <p>Something went wrong. Please try again.</p>;
   }
-
-  return (
-    <main className="flex h-screen">
-      <FileTree />
-      <Code setSelectedContext={setSelectedContext} />
-      <Chat
-        userInfo={userInfo}
-        selectedContext={selectedContext}
-        setSelectedContext={setSelectedContext}
-        chatStatus={chatStatus}
-        setChatStatus={setChatStatus}
-      />
-    </main>
-  );
 }

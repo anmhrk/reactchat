@@ -236,18 +236,21 @@ async def make_chat_public_or_private(
 async def delete_chat(
     chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
 ):
-    chat = (
-        db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
-        .first()
-    )
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
+    try:
+        chat = (
+            db.query(Chat)
+            .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
+            .first()
+        )
 
-    messages = db.query(ChatMessage).filter(ChatMessage.chat_id == chat_id).all()
-    for message in messages:
-        db.delete(message)
+        if not chat:
+            raise HTTPException(status_code=404, detail="Chat not found")
 
-    db.delete(chat)
-    db.commit()
-    return {"message": "Chat deleted", "status": 200}
+        db.delete(chat)
+        db.commit()
+
+        return {"success": True, "message": "Chat deleted", "status": 200}
+    except Exception as e:
+        print(f"Error deleting chat: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

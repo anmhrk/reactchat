@@ -18,7 +18,7 @@ class Chat(Base):
     id = Column(String, primary_key=True, index=True)
     github_url = Column(String, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    user_id = Column(String, ForeignKey("users.id"))
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
     is_public = Column(Boolean, default=False)
     repo_info = Column(String)
     indexing_status = Column(String, default="not_started")
@@ -41,7 +41,7 @@ class ChatMessage(Base):
     __tablename__ = "chat_messages"
 
     id = Column(String, primary_key=True, index=True)
-    chat_id = Column(String, ForeignKey("chats.id"), index=True)
+    chat_id = Column(String, ForeignKey("chats.id", ondelete="CASCADE"), index=True)
     message = Column(String)
     role = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

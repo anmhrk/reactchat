@@ -30,6 +30,14 @@ class IngestValidateRequest(BaseModel):
 @router.post("/ingest/validate")
 async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)):
     try:
+        chat = (
+            db.query(Chat)
+            .filter(Chat.github_url == request.url, Chat.user_id == request.userId)
+            .first()
+        )
+        if chat:
+            return {"message": f"/chat/{chat.id}"}
+
         # Validating request URL
         pattern = r"^(?:https://)?github\.com/([a-zA-Z0-9-]+)/([a-zA-Z0-9-._]+)"
         match = re.match(pattern, request.url)
