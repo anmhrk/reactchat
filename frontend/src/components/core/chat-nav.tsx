@@ -9,12 +9,11 @@ import {
 import { UserDropdown } from "../user-dropdown";
 import { ThemeToggle } from "../theme-toggle";
 import { FiDelete } from "react-icons/fi";
-import { LuBookmarkX, LuBookmarkCheck } from "react-icons/lu";
+import { LuBookmarkX, LuBookmarkCheck, LuSettings2 } from "react-icons/lu";
 import {
   HiOutlineChevronDoubleLeft,
   HiOutlineChevronDoubleRight,
 } from "react-icons/hi";
-import { BsThreeDots } from "react-icons/bs";
 import { Button } from "../ui/button";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -115,7 +114,7 @@ export default function ChatNav({
             <Button
               variant="ghost"
               size="icon"
-              className="text-zinc-600 dark:text-zinc-300"
+              className="hidden text-zinc-600 dark:text-zinc-300 md:flex"
               onClick={() => {
                 setShowFileTreeAndCode(!showFileTreeAndCode);
                 window.localStorage.setItem(
@@ -144,7 +143,7 @@ export default function ChatNav({
               size="icon"
               className="text-zinc-600 dark:text-zinc-300"
             >
-              <BsThreeDots className="!h-5 !w-5" />
+              <LuSettings2 className="!h-5 !w-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent

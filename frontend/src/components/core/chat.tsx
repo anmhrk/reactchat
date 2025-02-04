@@ -10,6 +10,9 @@ import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { SelectedContext } from "./layout-helper";
 import type { ChatStatus } from "~/lib/types";
+import { getRepo } from "~/lib/db";
+import Link from "next/link";
+import { useIsMobile } from "~/hooks/use-mobile";
 
 export type Message = {
   id?: string;
@@ -42,6 +45,8 @@ export default function Chat({
   const params = useParams<{ id: string }>();
   const chatId = params.id;
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [repoName, setRepoName] = useState("");
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchMessages = async () => {
@@ -63,6 +68,15 @@ export default function Chat({
       }
       setIsLoading(false);
     };
+
+    const getRepoName = async () => {
+      const repo = await getRepo(chatId);
+      const parts = repo?.github_url.split("/").slice(-2);
+      const [owner, name] = parts ?? [];
+      setRepoName(`${owner}/${name}`);
+    };
+
+    void getRepoName();
     void fetchMessages();
   }, [chatId, BACKEND_URL]);
 
@@ -110,6 +124,18 @@ export default function Chat({
             showFileTreeAndCode={showFileTreeAndCode}
             setShowFileTreeAndCode={setShowFileTreeAndCode}
           />
+          {(!showFileTreeAndCode || isMobile) && (
+            <div className="flex flex-col items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+              <p>
+                Chatting with{" "}
+                <Link href={`https://github.com/${repoName}`}>
+                  <span className="font-medium text-foreground hover:underline">
+                    {repoName}
+                  </span>
+                </Link>
+              </p>
+            </div>
+          )}
           <ScrollArea className="flex-1" ref={scrollAreaRef}>
             <Messages messages={messages} isStreaming={isStreaming} />
           </ScrollArea>
