@@ -8,7 +8,6 @@ a chat app that allows users to understand and chat with any open source React a
 - 🔖 bookmark chats
 - 🔄 recent chats history
 - 🌙 dark mode
-- 📚 public/private chat sharing
 - 📝 quote code snippets as context
 
 ## tech stack
@@ -41,25 +40,32 @@ pip install -r requirements.txt
 
 3. copy .env.example to .env and set the env variables in backend/.env
 
-4. start backend server
+4. database setup
+
+```bash
+alembic revision --autogenerate -m "initial migration" # delete backend/db/alembic/versions first
+alembic upgrade head
+```
+
+5. start backend server
 
 ```bash
 uvicorn main:app --reload
 ```
 
-5. setup frontend
+6. setup frontend
 
 ```bash
 cd frontend
 bun install
 ```
 
-6. copy .env.example to .env and set the env variables in frontend/.env
+7. copy .env.example to .env and set the env variables in frontend/.env
 
-7. start frontend server
+8. start frontend server
 
 ```bash
 bun dev
 ```
 
-8. open http://localhost:3000 and see the app live in your browser
+9. open http://localhost:3000 and see the app live in your browser

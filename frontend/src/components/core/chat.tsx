@@ -23,12 +23,16 @@ export default function Chat({
   setSelectedContext,
   chatStatus,
   setChatStatus,
+  showFileTreeAndCode,
+  setShowFileTreeAndCode,
 }: {
   userInfo: UserInfo;
   selectedContext: SelectedContext;
   setSelectedContext: React.Dispatch<React.SetStateAction<SelectedContext>>;
   chatStatus: ChatStatus;
   setChatStatus: (chatStatus: ChatStatus) => void;
+  showFileTreeAndCode: boolean;
+  setShowFileTreeAndCode: (showFileTreeAndCode: boolean) => void;
 }) {
   const [model, setModel] = useState<string>("gpt-4o");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -88,7 +92,9 @@ export default function Chat({
   }, [messages, isStreaming]);
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main
+      className={`flex flex-1 flex-col ${!showFileTreeAndCode && "mx-auto max-w-3xl"}`}
+    >
       {isLoading ? (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-10 w-10 animate-spin" />
@@ -101,6 +107,8 @@ export default function Chat({
             setModel={setModel}
             chatStatus={chatStatus}
             setChatStatus={setChatStatus}
+            showFileTreeAndCode={showFileTreeAndCode}
+            setShowFileTreeAndCode={setShowFileTreeAndCode}
           />
           <ScrollArea className="flex-1" ref={scrollAreaRef}>
             <Messages messages={messages} isStreaming={isStreaming} />

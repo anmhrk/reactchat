@@ -31,6 +31,18 @@ export default function LayoutHelper({
   const chatId = params.id;
   const pollingRef = useRef<NodeJS.Timeout>();
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const [showFileTreeAndCode, setShowFileTreeAndCode] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const res = window.localStorage.getItem(`${chatId}-showFileTreeAndCode`);
+    if (!res) {
+      window.localStorage.setItem(`${chatId}-showFileTreeAndCode`, "true");
+    } else {
+      setShowFileTreeAndCode(res === "true");
+    }
+    setIsLoading(false);
+  }, [chatId]);
 
   const pollIndexingStatus = useCallback(async () => {
     try {
@@ -96,18 +108,40 @@ export default function LayoutHelper({
     };
   }, [indexingStatus, BACKEND_URL, chatId, pollIndexingStatus]);
 
+  if (isLoading) {
+    return null;
+  }
+
   if (indexingStatus === "completed") {
     return (
       <main className="flex h-screen">
-        <FileTree />
-        <Code setSelectedContext={setSelectedContext} />
-        <Chat
-          userInfo={userInfo}
-          selectedContext={selectedContext}
-          setSelectedContext={setSelectedContext}
-          chatStatus={chatStatus}
-          setChatStatus={setChatStatus}
-        />
+        {showFileTreeAndCode ? (
+          <>
+            <FileTree />
+            <Code setSelectedContext={setSelectedContext} />
+            <Chat
+              showFileTreeAndCode={showFileTreeAndCode}
+              setShowFileTreeAndCode={setShowFileTreeAndCode}
+              userInfo={userInfo}
+              selectedContext={selectedContext}
+              setSelectedContext={setSelectedContext}
+              chatStatus={chatStatus}
+              setChatStatus={setChatStatus}
+            />
+          </>
+        ) : (
+          <>
+            <Chat
+              showFileTreeAndCode={showFileTreeAndCode}
+              setShowFileTreeAndCode={setShowFileTreeAndCode}
+              userInfo={userInfo}
+              selectedContext={selectedContext}
+              setSelectedContext={setSelectedContext}
+              chatStatus={chatStatus}
+              setChatStatus={setChatStatus}
+            />
+          </>
+        )}
       </main>
     );
   } else if (indexingStatus === undefined || indexingStatus === "in_progress") {

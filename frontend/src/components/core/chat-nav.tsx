@@ -10,7 +10,10 @@ import { UserDropdown } from "../user-dropdown";
 import { ThemeToggle } from "../theme-toggle";
 import { FiDelete } from "react-icons/fi";
 import { LuBookmarkX, LuBookmarkCheck } from "react-icons/lu";
-import { HiOutlineChevronDoubleLeft } from "react-icons/hi";
+import {
+  HiOutlineChevronDoubleLeft,
+  HiOutlineChevronDoubleRight,
+} from "react-icons/hi";
 import { BsThreeDots } from "react-icons/bs";
 import { Button } from "../ui/button";
 import { useParams, useRouter } from "next/navigation";
@@ -32,12 +35,16 @@ export default function ChatNav({
   setModel,
   chatStatus,
   setChatStatus,
+  showFileTreeAndCode,
+  setShowFileTreeAndCode,
 }: {
   userInfo: UserInfo;
   model: string;
   setModel: (model: string) => void;
   chatStatus: ChatStatus;
   setChatStatus: (chatStatus: ChatStatus) => void;
+  showFileTreeAndCode: boolean;
+  setShowFileTreeAndCode: (showFileTreeAndCode: boolean) => void;
 }) {
   const params = useParams<{ id: string }>();
   const chatId = params.id;
@@ -98,7 +105,7 @@ export default function ChatNav({
     } else {
       window.localStorage.setItem("model", "gpt-4o");
     }
-  }, [setModel]);
+  }, [setModel, params.id]);
 
   return (
     <main className="flex w-full items-center justify-between p-2">
@@ -109,12 +116,25 @@ export default function ChatNav({
               variant="ghost"
               size="icon"
               className="text-zinc-600 dark:text-zinc-300"
+              onClick={() => {
+                setShowFileTreeAndCode(!showFileTreeAndCode);
+                window.localStorage.setItem(
+                  `${chatId}-showFileTreeAndCode`,
+                  (!showFileTreeAndCode).toString(),
+                );
+              }}
             >
-              <HiOutlineChevronDoubleLeft className="!h-5 !w-5" />
+              {showFileTreeAndCode ? (
+                <HiOutlineChevronDoubleLeft className="!h-5 !w-5" />
+              ) : (
+                <HiOutlineChevronDoubleRight className="!h-5 !w-5" />
+              )}
             </Button>
           </TooltipTrigger>
           <TooltipContent className="rounded-lg px-2 py-1.5 text-sm font-medium">
-            Hide file tree and code
+            {showFileTreeAndCode
+              ? "Hide file tree and code"
+              : "Show file tree and code"}
           </TooltipContent>
         </Tooltip>
         <DropdownMenu>
