@@ -1,17 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
-import type { UserInfo } from "~/lib/types";
+import type { ChatStatus, IngestStatus, UserInfo } from "~/lib/types";
 import LayoutHelper from "~/components/core/layout-helper";
-
-export type IngestStatus =
-  | "not_started"
-  | "in_progress"
-  | "completed"
-  | "failed";
-
-export type ChatStatus = {
-  is_public: boolean;
-  is_bookmarked: boolean;
-};
 
 export default async function Page({
   params,

@@ -1,7 +1,7 @@
 "use client";
 
 import type { UserInfo } from "~/lib/types";
-import type { ChatStatus, IngestStatus } from "~/app/chat/[id]/page";
+import type { ChatStatus, IngestStatus } from "~/lib/types";
 import Chat from "./chat";
 import Code from "./code";
 import FileTree from "./file-tree";

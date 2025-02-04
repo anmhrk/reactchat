@@ -19,7 +19,6 @@ class Chat(Base):
     github_url = Column(String, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"))
-    is_public = Column(Boolean, default=False)
     repo_info = Column(String)
     indexing_status = Column(String, default="not_started")
     total_chunks = Column(Integer, default=0)

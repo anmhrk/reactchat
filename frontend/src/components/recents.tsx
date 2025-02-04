@@ -12,13 +12,7 @@ import { IoSearchOutline } from "react-icons/io5";
 import { Button } from "~/components/ui/button";
 import { FiDelete } from "react-icons/fi";
 import { LuBookmarkX, LuBookmarkCheck } from "react-icons/lu";
-import { MdPublic } from "react-icons/md";
-import { IoLockClosed } from "react-icons/io5";
-import {
-  handleBookmark,
-  handleDelete,
-  handleMakeChatPublicOrPrivate,
-} from "./core/chat-nav";
+import { handleBookmark, handleDelete } from "./core/chat-nav";
 import { Checkbox } from "./ui/checkbox";
 import {
   Tooltip,
@@ -177,35 +171,6 @@ function ChatCard({
                 </h3>
               </div>
               <div className="invisible items-center gap-1 group-hover:visible">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-zinc-600 hover:!bg-zinc-100 dark:text-zinc-300 dark:hover:!bg-zinc-800"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        await handleMakeChatPublicOrPrivate(chat.id, userId!);
-                        setChats(
-                          chats.map((c) =>
-                            c.id === chat.id
-                              ? { ...c, is_public: !c.is_public }
-                              : c,
-                          ),
-                        );
-                      }}
-                    >
-                      {chat.is_public ? (
-                        <IoLockClosed className="h-4 w-4" />
-                      ) : (
-                        <MdPublic className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent className="rounded-lg px-2 py-1.5 text-sm font-medium">
-                    {chat.is_public ? "Make chat private" : "Make chat public"}
-                  </TooltipContent>
-                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button

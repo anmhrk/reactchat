@@ -34,7 +34,6 @@ async def get_recents(request: UserRequestBody, db: Session = Depends(get_db)):
                 "github_url": chat.github_url,
                 "created_at": chat.created_at,
                 "is_bookmarked": chat.is_bookmarked,
-                "is_public": chat.is_public,
             }
             for chat in chats
         ]
@@ -52,10 +51,7 @@ async def validate_chat(
         raise HTTPException(status_code=403, detail="Forbidden")
 
     return {
-        "message": "Chat validated",
-        "is_public": chat.is_public,
         "is_bookmarked": chat.is_bookmarked,
-        "status": 200,
     }
 
 
@@ -210,26 +206,6 @@ async def bookmark_chat(
 
     action = "unbookmarked" if not getattr(chat, "is_bookmarked") else "bookmarked"
     return {"message": f"Chat {action}", "status": 200}
-
-
-@router.post("/chat/{chat_id}/public")
-async def make_chat_public_or_private(
-    chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
-):
-    chat = (
-        db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
-        .first()
-    )
-    if not chat:
-        raise HTTPException(status_code=404, detail="Chat not found")
-
-    new_state = not getattr(chat, "is_public")
-    setattr(chat, "is_public", new_state)
-    db.commit()
-
-    action = "public" if new_state else "private"
-    return {"message": f"{action}", "status": 200}
 
 
 @router.post("/chat/{chat_id}/delete")

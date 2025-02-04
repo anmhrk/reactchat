@@ -9,7 +9,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import type { SelectedContext } from "./layout-helper";
-import type { ChatStatus } from "~/app/chat/[id]/page";
+import type { ChatStatus } from "~/lib/types";
 
 export type Message = {
   id?: string;

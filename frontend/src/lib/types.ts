@@ -17,6 +17,15 @@ export interface RecentChat {
   id: string;
   github_url: string;
   created_at: string;
-  is_public: boolean;
   is_bookmarked: boolean;
 }
+
+export type IngestStatus =
+  | "not_started"
+  | "in_progress"
+  | "completed"
+  | "failed";
+
+export type ChatStatus = {
+  is_bookmarked: boolean;
+};

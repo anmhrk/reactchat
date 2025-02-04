@@ -10,8 +10,6 @@ import { UserDropdown } from "../user-dropdown";
 import { ThemeToggle } from "../theme-toggle";
 import { FiDelete } from "react-icons/fi";
 import { LuBookmarkX, LuBookmarkCheck } from "react-icons/lu";
-import { MdPublic } from "react-icons/md";
-import { IoLockClosed } from "react-icons/io5";
 import { HiOutlineChevronDoubleLeft } from "react-icons/hi";
 import { BsThreeDots } from "react-icons/bs";
 import { Button } from "../ui/button";
@@ -26,7 +24,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
-import type { ChatStatus } from "~/app/chat/[id]/page";
+import type { ChatStatus } from "~/lib/types";
 
 export default function ChatNav({
   userInfo,
@@ -45,29 +43,6 @@ export default function ChatNav({
   const chatId = params.id;
   const router = useRouter();
   const MENU_ITEMS = [
-    chatStatus.is_public
-      ? {
-          icon: <IoLockClosed className="!h-5 !w-5" />,
-          label: "Make Private",
-          onClick: async () => {
-            await handleMakeChatPublicOrPrivate(chatId, userInfo.id!);
-            setChatStatus({
-              is_public: false,
-              is_bookmarked: chatStatus.is_bookmarked,
-            });
-          },
-        }
-      : {
-          icon: <MdPublic className="!h-5 !w-5" />,
-          label: "Make Public",
-          onClick: async () => {
-            await handleMakeChatPublicOrPrivate(chatId, userInfo.id!);
-            setChatStatus({
-              is_public: true,
-              is_bookmarked: chatStatus.is_bookmarked,
-            });
-          },
-        },
     chatStatus.is_bookmarked
       ? {
           icon: <LuBookmarkX className="!h-5 !w-5" />,
@@ -75,7 +50,6 @@ export default function ChatNav({
           onClick: async () => {
             await handleBookmark(chatId, userInfo.id!);
             setChatStatus({
-              is_public: chatStatus.is_public,
               is_bookmarked: false,
             });
           },
@@ -86,7 +60,6 @@ export default function ChatNav({
           onClick: async () => {
             await handleBookmark(chatId, userInfo.id!);
             setChatStatus({
-              is_public: chatStatus.is_public,
               is_bookmarked: true,
             });
           },
@@ -105,19 +78,20 @@ export default function ChatNav({
 
   const MODEL_OPTIONS = [
     {
-      name: "GPT 4o",
+      name: "GPT-4o",
       value: "gpt-4o",
     },
     {
       name: "Claude 3.5 Sonnet",
       value: "claude-3-5-sonnet-20241022",
+      disabled: true,
     },
   ];
 
   useEffect(() => {
     const storedModel = window.localStorage.getItem("model");
     if (
-      storedModel === "claude-3-5-sonnet-20241022" ||
+      // storedModel === "claude-3-5-sonnet-20241022" ||
       storedModel === "gpt-4o"
     ) {
       setModel(storedModel);
@@ -185,7 +159,8 @@ export default function ChatNav({
               <SelectItem
                 key={option.value}
                 value={option.value}
-                className="cursor-pointer px-2 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                disabled={option.disabled}
+                className="px-2 py-1.5 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
               >
                 {option.name}
               </SelectItem>
@@ -210,41 +185,6 @@ export default function ChatNav({
       </div>
     </main>
   );
-}
-
-export async function handleMakeChatPublicOrPrivate(
-  chatId: string,
-  userId: string,
-) {
-  const shareUrl = `${process.env.NEXT_PUBLIC_FRONTEND_URL}/chat/${chatId}`;
-  try {
-    if (!userId) {
-      throw new Error("User ID is required");
-    }
-
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/public`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: userId,
-        }),
-      },
-    );
-    const data = (await response.json()) as { message: string; status: number };
-
-    if (data.message === "public") {
-      toast.success("Chat is now public + link copied to clipboard");
-      await navigator.clipboard.writeText(shareUrl);
-    } else {
-      toast.success("Chat is now private");
-    }
-  } catch (error) {
-    toast.error((error as Error).message);
-  }
 }
 
 export async function handleBookmark(chatId: string, userId: string) {
