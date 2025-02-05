@@ -5,12 +5,8 @@ from sqlalchemy.orm import Session
 from db.models import Chat
 from langchain_openai import OpenAIEmbeddings
 from db.pinecone import get_index
-import logging
 import asyncio
 from typing import Dict, Any, cast
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 def create_chunks(content: str):
@@ -103,13 +99,11 @@ def format_context(chunks: List[dict], question: str) -> str:
 
 async def create_embeddings(db: Session, chat_id: str, content: str):
     try:
-        logger.info(f"Starting embedding creation for chat {chat_id}")
         chat = db.query(Chat).filter(Chat.id == chat_id).first()
         if not chat:
             raise HTTPException(status_code=404, detail="Chat not found")
 
         chunks = create_chunks(content)
-        logger.info(f"Created {len(chunks)} chunks")
         setattr(chat, "total_chunks", len(chunks))
         setattr(chat, "indexed_chunks", 0)
         db.commit()
@@ -120,7 +114,6 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
 
         batch_size = 20
         index = get_index()
-        logger.info("Processing chunks and creating embeddings...")
 
         for i in range(0, len(chunks), batch_size):
             batch = chunks[i : i + batch_size]
@@ -153,21 +146,14 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
 
                 setattr(chat, "indexed_chunks", min(i + batch_size, len(chunks)))
                 db.commit()
-
-                logger.info(
-                    f"Processed chunks {i+1} to {min(i+batch_size, len(chunks))}/{len(chunks)}"
-                )
             except Exception as chunk_error:
-                logger.error(f"Error processing chunk {i+1}: {str(chunk_error)}")
                 raise
 
         setattr(chat, "indexing_status", "completed")
         db.commit()
 
-        logger.info("Embeddings created successfully")
         return True
     except Exception as e:
-        logger.error(f"Error in create_embeddings: {str(e)}")
         chat = db.query(Chat).filter(Chat.id == chat_id).first()
         if chat:
             setattr(chat, "indexing_status", "failed")

@@ -17,7 +17,7 @@ a chat app that allows users to understand and chat with any open source React a
 - **auth**: clerk
 - **database**: sqlalchemy, neon postgres, alembic for migrations
 - **llm**: openai gpt-4o, claude 3.5 sonnet
-- **rag**: langchain
+- **rag**: langchain, pinecone as vector store
 - **embeddings**: openai text-embedding-3-large
 
 ## how to run locally

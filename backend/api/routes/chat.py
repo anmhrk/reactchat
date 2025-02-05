@@ -13,8 +13,6 @@ from api.rag import format_context, search_embeddings
 from db.pinecone import get_index
 import asyncio
 
-# import tiktoken
-
 router = APIRouter()
 
 
@@ -232,8 +230,20 @@ async def delete_chat(
         db.delete(chat)
         db.commit()
 
+        index = get_index()
+        index.delete(filter={"github_url": str(chat.github_url)})
+
         return {"success": True, "message": "Chat deleted", "status": 200}
     except Exception as e:
         print(f"Error deleting chat: {str(e)}")
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/chat/{chat_id}/repo-name")
+async def fetch_repo_name(chat_id: str, db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found")
+
+    return {"repo_name": chat.github_url.split("/")[-1]}

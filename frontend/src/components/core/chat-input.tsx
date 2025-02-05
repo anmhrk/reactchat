@@ -124,7 +124,7 @@ export default function ChatInput({
     } finally {
       setIsStreaming(false);
       if (textareaRef.current) {
-        textareaRef.current.rows = 4;
+        textareaRef.current.rows = 3;
       }
       formRef.current?.reset();
     }
