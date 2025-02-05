@@ -78,7 +78,7 @@ export default function Chat({
 
     void getRepoName();
     void fetchMessages();
-  }, [chatId, BACKEND_URL]);
+  }, [chatId, BACKEND_URL, userInfo.id]);
 
   const handleNewMessage = useCallback((message: Message) => {
     setMessages((prevMessages) => {
@@ -140,6 +140,7 @@ export default function Chat({
             <Messages messages={messages} isStreaming={isStreaming} />
           </ScrollArea>
           <ChatInput
+            userInfo={userInfo}
             model={model}
             onNewMessage={handleNewMessage}
             isStreaming={isStreaming}

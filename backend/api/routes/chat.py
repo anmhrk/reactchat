@@ -21,6 +21,7 @@ class UserRequestBody(BaseModel):
 
 
 class ChatMessageRequest(BaseModel):
+    user_id: str
     message: str
     model: str
     selected_context: dict | None
@@ -42,14 +43,12 @@ async def get_recents(request: UserRequestBody, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/chat/{chat_id}/validate")
-async def validate_chat(
-    chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
-):
-    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+@router.get("/chat/{chat_id}/validate")
+async def validate_chat(chat_id: str, user_id: str, db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
-    if str(chat.user_id) != str(request.user_id):
+    if str(chat.user_id) != str(user_id):
         raise HTTPException(status_code=403, detail="Forbidden")
 
     return {
@@ -61,7 +60,11 @@ async def validate_chat(
 async def send_chat_message(
     chat_id: str, request: ChatMessageRequest, db: Session = Depends(get_db)
 ):
-    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+    chat = (
+        db.query(Chat)
+        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
+        .first()
+    )
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 

@@ -13,6 +13,7 @@ import {
   FaCss3,
 } from "react-icons/fa";
 import { SiTypescript, SiJavascript, SiNextdotjs } from "react-icons/si";
+import { IoIosSettings } from "react-icons/io";
 import { FaReact } from "react-icons/fa";
 import { VscJson } from "react-icons/vsc";
 import { cn } from "~/lib/utils";
@@ -23,6 +24,7 @@ const ICON_MAP = {
   ".tsx": FaReact,
   ".js": SiJavascript,
   ".mjs": SiJavascript,
+  ".cjs": SiJavascript,
   ".jsx": FaReact,
   ".json": VscJson,
   ".md": FaInfoCircle,
@@ -31,6 +33,7 @@ const ICON_MAP = {
   "next.config.ts": SiNextdotjs,
   "next.config.js": SiNextdotjs,
   ".css": FaCss3,
+  ".env.example": IoIosSettings,
 };
 
 const ICON_COLORS = {
@@ -38,6 +41,7 @@ const ICON_COLORS = {
   ".tsx": "text-[#58C4DC]",
   ".js": "text-[#FFCA27]",
   ".mjs": "text-[#FFCA27]",
+  ".cjs": "text-[#FFCA27]",
   ".jsx": "text-[#58C4DC]",
   ".json": "text-black dark:text-white/80",
   ".md": "text-[#42A5F5]",

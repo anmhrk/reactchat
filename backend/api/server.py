@@ -2,14 +2,24 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 from api.routes import auth, ingest, repo, chat
 
 app = FastAPI()
 
+cors_origins = os.getenv("CORS_ORIGINS")
+if cors_origins:
+    cors_origins = cors_origins.split(",")
+else:
+    cors_origins = []
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "https://reactchat.up.railway.app"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

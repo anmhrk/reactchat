@@ -9,8 +9,10 @@ import { useParams } from "next/navigation";
 import type { Message } from "./chat";
 import type { SelectedContext } from "./layout-helper";
 import { X } from "lucide-react";
+import type { UserInfo } from "~/lib/types";
 
 export default function ChatInput({
+  userInfo,
   model,
   onNewMessage,
   isStreaming,
@@ -18,6 +20,7 @@ export default function ChatInput({
   selectedContext,
   setSelectedContext,
 }: {
+  userInfo: UserInfo;
   model: string;
   onNewMessage: (message: Message) => void;
   isStreaming: boolean;
@@ -79,6 +82,7 @@ export default function ChatInput({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          user_id: userInfo.id,
           message: input,
           model,
           selected_context: selectedContext,

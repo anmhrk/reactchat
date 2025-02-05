@@ -43,15 +43,9 @@ export default async function Page({
   const chatId = (await params).id;
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const chat = await fetch(`${BACKEND_URL}/chat/${chatId}/validate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      user_id: userInfo.id,
-    }),
-  });
+  const chat = await fetch(
+    `${BACKEND_URL}/chat/${chatId}/validate?user_id=${user?.id}`,
+  );
 
   if (!chat.ok) {
     if (chat.status === 404) {
@@ -65,7 +59,9 @@ export default async function Page({
   const chatStatus = (await chat.json()) as ChatStatus;
 
   // Fetch indexing status on server
-  const statusResponse = await fetch(`${BACKEND_URL}/ingest/${chatId}/status`);
+  const statusResponse = await fetch(
+    `${BACKEND_URL}/ingest/${chatId}/status?user_id=${user?.id}`,
+  );
   const { status } = (await statusResponse.json()) as { status: IngestStatus };
 
   return (

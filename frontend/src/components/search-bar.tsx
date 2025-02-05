@@ -38,7 +38,7 @@ export function SearchBar({ userId }: { userId: string | null }) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url, userId }),
+        body: JSON.stringify({ url, user_id: userId }),
       });
 
       const data = (await response.json()) as {

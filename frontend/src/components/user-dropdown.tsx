@@ -17,7 +17,7 @@ export function UserDropdown({ userInfo }: { userInfo: UserInfo }) {
     >
       <div className="px-2 py-1.5">
         <p className="text-sm font-medium text-zinc-900 dark:text-white">
-          {userInfo.fullName ?? userInfo.username}
+          {userInfo.fullName ?? userInfo.email?.split("@")[0]}
         </p>
         <p className="line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">
           {userInfo.email}

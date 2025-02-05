@@ -9,8 +9,9 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
 import Link from "next/link";
 import { FaReact } from "react-icons/fa";
+import type { UserInfo } from "~/lib/types";
 
-export default function FileTree() {
+export default function FileTree({ userInfo }: { userInfo: UserInfo }) {
   const [tree, setTree] = useState<FileNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export default function FileTree() {
         }
 
         const response = await fetch(
-          `${BACKEND_URL}/repo/${decodeURIComponent(params.id)}`,
+          `${BACKEND_URL}/repo/${decodeURIComponent(params.id)}?user_id=${userInfo.id}`,
         );
 
         const data = (await response.json()) as {
@@ -52,7 +53,7 @@ export default function FileTree() {
     }
 
     void loadRepo();
-  }, [params.id, BACKEND_URL]);
+  }, [params.id, BACKEND_URL, userInfo.id]);
 
   function buildTree(files: { path: string; content: string }[]) {
     const root: FileNode[] = [];

@@ -153,7 +153,7 @@ function ChatCard({
   setChats: (chats: RecentChat[]) => void;
 }) {
   return (
-    <>
+    <div className="flex flex-col gap-5">
       {chats
         .filter((chat) => chat.github_url.includes(search.toLowerCase()))
         .slice(0, 6)
@@ -190,9 +190,9 @@ function ChatCard({
                       }}
                     >
                       {chat.is_bookmarked ? (
-                        <LuBookmarkCheck className="h-4 w-4" />
-                      ) : (
                         <LuBookmarkX className="h-4 w-4" />
+                      ) : (
+                        <LuBookmarkCheck className="h-4 w-4" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -228,6 +228,6 @@ function ChatCard({
             </p>
           </Link>
         ))}
-    </>
+    </div>
   );
 }

@@ -26,7 +26,11 @@ indexing_locks = {}
 
 class IngestValidateRequest(BaseModel):
     url: str
-    userId: str
+    user_id: str
+
+
+class IngestRequestBody(BaseModel):
+    user_id: str
 
 
 @router.post("/ingest/validate")
@@ -34,7 +38,7 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
     try:
         chat = (
             db.query(Chat)
-            .filter(Chat.github_url == request.url, Chat.user_id == request.userId)
+            .filter(Chat.github_url == request.url, Chat.user_id == request.user_id)
             .first()
         )
         if chat:
@@ -86,7 +90,7 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
 
         existing_chat = (
             db.query(Chat)
-            .filter(Chat.github_url == clean_url, Chat.user_id == request.userId)
+            .filter(Chat.github_url == clean_url, Chat.user_id == request.user_id)
             .first()
         )
 
@@ -97,7 +101,7 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
             chat = Chat(
                 id=chat_id,
                 github_url=clean_url,
-                user_id=request.userId,
+                user_id=request.user_id,
                 repo_info=repo_info,
             )
             db.add(chat)
@@ -110,7 +114,10 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
 
 @router.post("/ingest/{chat_id}")
 async def ingest_repo(
-    chat_id: str, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+    chat_id: str,
+    request: IngestRequestBody,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     # Get or create lock for this chat_id
     if chat_id not in indexing_locks:
@@ -121,7 +128,11 @@ async def ingest_repo(
         return {"status": "in_progress"}
 
     try:
-        chat = db.query(Chat).filter(Chat.id == chat_id).first()
+        chat = (
+            db.query(Chat)
+            .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
+            .first()
+        )
         if not chat:
             raise HTTPException(status_code=404, detail="Chat not found")
 
@@ -191,8 +202,10 @@ async def ingest_repo(
 
 
 @router.get("/ingest/{chat_id}/status")
-async def check_indexing_status(chat_id: str, db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+async def check_indexing_status(
+    chat_id: str, user_id: str, db: Session = Depends(get_db)
+):
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 

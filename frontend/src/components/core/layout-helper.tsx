@@ -46,7 +46,9 @@ export default function LayoutHelper({
 
   const pollIndexingStatus = useCallback(async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/ingest/${chatId}/status`);
+      const response = await fetch(
+        `${BACKEND_URL}/ingest/${chatId}/status?user_id=${userInfo.id}`,
+      );
       const data = (await response.json()) as {
         status: IngestStatus;
         progress: number;
@@ -67,7 +69,7 @@ export default function LayoutHelper({
       console.log(error);
       setIndexingStatus("failed");
     }
-  }, [BACKEND_URL, chatId]);
+  }, [BACKEND_URL, chatId, userInfo.id]);
 
   useEffect(() => {
     if (indexingStatus === "not_started") {
@@ -79,6 +81,7 @@ export default function LayoutHelper({
             headers: {
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({ user_id: userInfo.id }),
           });
 
           const data = (await response.json()) as { status: IngestStatus };
@@ -106,7 +109,7 @@ export default function LayoutHelper({
         clearTimeout(pollingRef.current);
       }
     };
-  }, [indexingStatus, BACKEND_URL, chatId, pollIndexingStatus]);
+  }, [indexingStatus, BACKEND_URL, chatId, pollIndexingStatus, userInfo.id]);
 
   if (isLoading) {
     return null;
@@ -117,7 +120,7 @@ export default function LayoutHelper({
       <main className="flex h-screen">
         {showFileTreeAndCode ? (
           <>
-            <FileTree />
+            <FileTree userInfo={userInfo} />
             <Code setSelectedContext={setSelectedContext} />
             <Chat
               showFileTreeAndCode={showFileTreeAndCode}

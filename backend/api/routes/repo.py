@@ -11,8 +11,8 @@ router = APIRouter()
 
 
 @router.get("/repo/{chat_id}")
-async def get_repo(chat_id: str, db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+async def get_repo(chat_id: str, user_id: str, db: Session = Depends(get_db)):
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
