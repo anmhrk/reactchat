@@ -7,11 +7,13 @@ import requests
 import uuid
 from sqlalchemy.orm import Session
 from db.config import get_db, SessionLocal
-from db.models import Chat, Embedding
+from db.models import Chat
 import logging
 import tiktoken
 from threading import Lock
 from api.rag import create_embeddings
+from db.pinecone import get_index
+from typing import Dict, Any, cast
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -123,10 +125,18 @@ async def ingest_repo(
         if not chat:
             raise HTTPException(status_code=404, detail="Chat not found")
 
-        existing_embeddings = (
-            db.query(Embedding).filter(Embedding.github_url == chat.github_url).first()
+        # Check if vectors already exist in Pinecone
+        index = get_index()
+        existing_vectors = await asyncio.to_thread(
+            index.query,
+            vector=[0.0] * 3072,
+            filter={"github_url": str(chat.github_url)},
+            top_k=1,
         )
-        if existing_embeddings:
+
+        existing_vectors = cast(Dict[str, Any], existing_vectors)
+
+        if existing_vectors["matches"]:
             setattr(chat, "indexing_status", "completed")
             db.commit()
             return {"status": "completed"}

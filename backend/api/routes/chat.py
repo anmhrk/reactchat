@@ -3,13 +3,17 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from db.config import get_db
-from db.models import Chat, Embedding, ChatMessage
+from db.models import Chat, ChatMessage
 import uuid
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
 import json
-from typing import AsyncGenerator
-from api.rag import format_context, hybrid_search
+from typing import AsyncGenerator, Dict, Any, cast
+from api.rag import format_context, search_embeddings
+from db.pinecone import get_index
+import asyncio
+
+# import tiktoken
 
 router = APIRouter()
 
@@ -63,30 +67,24 @@ async def send_chat_message(
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
-    embeddings_record = (
-        db.query(Embedding).filter(Embedding.github_url == chat.github_url).first()
+    # Check if vectors exist in Pinecone
+    index = get_index()
+    existing_vectors = await asyncio.to_thread(
+        index.query,
+        vector=[0.0] * 3072,
+        filter={"github_url": str(chat.github_url)},
+        top_k=1,
     )
-    if not embeddings_record:
+    existing_vectors = cast(Dict[str, Any], existing_vectors)
+
+    if not existing_vectors["matches"]:
         raise HTTPException(status_code=400, detail="Chat repository not indexed")
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
     question_embedding = await embeddings.aembed_query(request.message)
 
     try:
-        stored_embeddings = json.loads(getattr(embeddings_record, "embedding"))
-        stored_chunks = json.loads(getattr(embeddings_record, "chunks"))
-
-        if stored_embeddings is None or stored_chunks is None:
-            raise HTTPException(
-                status_code=500, detail="Missing embeddings or chunks data"
-            )
-
-        relevant_chunks = await hybrid_search(
-            question=request.message,
-            chunks=stored_chunks,
-            embeddings=stored_embeddings,
-            question_embedding=question_embedding,
-        )
+        relevant_chunks = await search_embeddings(question_embedding)
         context = format_context(relevant_chunks, request.message)
 
         user_message = ChatMessage(
@@ -166,6 +164,15 @@ async def send_chat_message(
             )
             db.add(assistant_message)
             db.commit()
+
+            # assistant_token_count = tiktoken.encoding_for_model("gpt-4o").encode(
+            #     assistant_message_content
+            # )
+            # user_token_count = tiktoken.encoding_for_model("gpt-4o").encode(
+            #     request.message
+            # )
+            # print("assistant token count: ", len(assistant_token_count))
+            # print("user token count: ", len(user_token_count))
 
         return StreamingResponse(
             stream_response_content(), media_type="text/event-stream"

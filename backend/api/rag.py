@@ -1,234 +1,73 @@
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-import numpy as np
 from typing import List
 from fastapi import HTTPException
-import uuid
 from sqlalchemy.orm import Session
-from db.models import Chat, Embedding
+from db.models import Chat
 from langchain_openai import OpenAIEmbeddings
-import json
+from db.pinecone import get_index
 import logging
 import asyncio
+from typing import Dict, Any, cast
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def determine_file_type(file_path: str) -> str:
-    extensions = {
-        "ts": "typescript",
-        "tsx": "react",
-        "js, mjs, cjs": "javascript",
-        "jsx": "react",
-        "json": "config",
-        "md": "documentation",
-        "css": "styles",
-        "html": "markup",
-        # this does not handle backend codebases in python for example. just js/ts/react
-    }
-    ext = file_path.split(".")[-1].lower()
-    return extensions.get(ext, "other")
-
-
-def split_into_logical_sections(content: str) -> List[str]:
-    sections = []
-    current_section = []
-
-    for line in content.split("\n"):
-        if (
-            line.strip().startswith("function ")
-            or line.strip().startswith("class ")
-            or line.strip().startswith("const ")
-            or line.strip().startswith("export ")
-        ):
-
-            if current_section:
-                sections.append("\n".join(current_section))
-            current_section = []
-
-        current_section.append(line)
-
-    if current_section:
-        sections.append("\n".join(current_section))
-
-    return sections
-
-
-def chunk_code_file(content: str, file_path: str) -> List[dict]:
-    chunks = []
-    sections = split_into_logical_sections(content)
-
-    for section in sections:
-        chunks.append(
-            {
-                "content": section,
-                "metadata": {
-                    "file_path": file_path,
-                    "type": "code",
-                    "category": categorize_code(section, file_path),
-                },
-            }
-        )
-
-    return chunks
-
-
-def categorize_code(content: str, file_path: str) -> str:
-    categories = {
-        "route": ["router", "api", "endpoint", "handler", "app", "routes", "pages"],
-        "component": ["component", "jsx", "tsx"],
-        "styling": ["shadcn", "components/ui", "tailwind", "css", "styles"],
-        "model": ["model", "schema", "type", "interface"],
-        "util": ["util", "helper", "lib", "utils", "hooks", "context"],
-        "config": ["config", "env"],
-    }
-
-    for category, keywords in categories.items():
-        if any(
-            keyword in content.lower() or keyword in file_path.lower()
-            for keyword in keywords
-        ):
-            return category
-
-    return "other"
 
 
 def create_chunks(content: str):
     files = content.split("File:")[1:]
     chunks_with_metadata = []
 
-    important_dirs = [
-        "/src/",
-        "/app/",
-        "/pages/",
-        "/components/",
-        "/lib/",
-        "/utils/",
-        "/hooks/",
-        "/api/",
-    ]
-
     for file_content in files:
         file_lines = file_content.split("\n")
         file_path = file_lines[0].strip()
-
-        is_important = any(imp_dir in file_path for imp_dir in important_dirs)
-        if not is_important and not file_path.endswith((".tsx", ".ts", ".jsx", ".js")):
-            continue
-
         actual_content = "\n".join(file_lines[2:])
-        file_type = determine_file_type(file_path)
 
-        if file_type in ["typescript", "react", "javascript"]:
-            chunks = chunk_code_file(actual_content, file_path)
-        else:
-            text_splitter = RecursiveCharacterTextSplitter(
-                chunk_size=2000,
-                chunk_overlap=100,
-                length_function=len,
-            )
-            text_chunks = text_splitter.split_text(actual_content)
-            chunks = [
-                {
-                    "content": chunk,
-                    "metadata": {
-                        "file_path": file_path,
-                        "type": "text",
-                        "category": (
-                            "documentation" if file_type == "documentation" else "other"
-                        ),
-                    },
-                }
-                for chunk in text_chunks
-            ]
-
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=2000,
+            chunk_overlap=100,
+            length_function=len,
+        )
+        text_chunks = text_splitter.split_text(actual_content)
+        chunks = [
+            {
+                "content": chunk,
+                "metadata": {
+                    "file_path": file_path,
+                    "type": "code",
+                },
+            }
+            for chunk in text_chunks
+        ]
         chunks_with_metadata.extend(chunks)
 
     return chunks_with_metadata
 
 
-def cosine_similarity(a: List[float], b: List[float]) -> float:
-    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
+async def search_embeddings(question_embedding: List[float]) -> List[dict]:
+    index = get_index()
 
+    query = await asyncio.to_thread(
+        index.query,
+        vector=question_embedding,
+        top_k=5,
+        include_metadata=True,
+    )
 
-def calculate_path_relevance(file_path: str, question: str) -> float:
-    path_parts = set(file_path.lower().replace("/", " ").replace(".", " ").split())
-    question_parts = set(question.lower().split())
+    query_response = cast(Dict[str, Any], query)
+    print(query_response)
 
-    if "routing" in question.lower() and any(
-        x in file_path for x in ["route", "router"]
-    ):
-        return 1.0
-    if "component" in question.lower() and "/components/" in file_path:
-        return 1.0
-    if "api" in question.lower() and "/api/" in file_path:
-        return 1.0
-
-    return len(path_parts.intersection(question_parts)) / len(question_parts)
-
-
-def calculate_category_match(category: str, question: str) -> float:
-    category_keywords = {
-        "route": ["routing", "api", "endpoint", "handler", "router"],
-        "component": ["component", "ui", "interface", "render", "jsx", "tsx"],
-        "model": ["model", "schema", "type", "data"],
-        "util": ["utility", "helper", "format", "transform", "hook", "context"],
-        "config": ["configuration", "setup", "environment"],
-    }
-
-    if category in category_keywords:
-        keywords = category_keywords[category]
-        if any(keyword in question.lower() for keyword in keywords):
-            return 1.0
-
-    return 0.0
-
-
-async def hybrid_search(
-    question: str,
-    chunks: List[dict],
-    embeddings: List[List[float]],
-    question_embedding: List[float],
-) -> List[dict]:
-    semantic_scores = [
-        cosine_similarity(question_embedding, chunk_embedding)
-        for chunk_embedding in embeddings
-    ]
-
-    keywords = question.lower().split()
-    keyword_scores = [
-        sum(keyword in chunk["content"].lower() for keyword in keywords) / len(keywords)
-        for chunk in chunks
-    ]
-
-    path_scores = [
-        calculate_path_relevance(chunk["metadata"]["file_path"], question)
-        for chunk in chunks
-    ]
-
-    category_scores = [
-        calculate_category_match(chunk["metadata"]["category"], question)
-        for chunk in chunks
-    ]
-
-    combined_scores = [
-        (0.4 * sem_score + 0.3 * key_score + 0.2 * path_score + 0.1 * cat_score)
-        for sem_score, key_score, path_score, cat_score in zip(
-            semantic_scores, keyword_scores, path_scores, category_scores
-        )
-    ]
-
-    top_k = 5
-    top_indices = np.argsort(combined_scores)[-top_k:][::-1]
-
-    relevant_chunks = []
-    for idx in top_indices:
-        if combined_scores[idx] >= 0.2:
-            chunk = chunks[idx]
-            chunk["score"] = combined_scores[idx]
-            relevant_chunks.append(chunk)
-
-    return relevant_chunks
+    chunks = []
+    for match in query_response["matches"]:
+        chunk = {
+            "content": match["metadata"]["content"],
+            "metadata": {
+                "file_path": match["metadata"]["file_path"],
+                "type": match["metadata"]["type"],
+            },
+            "score": float(match["score"]),
+        }
+        chunks.append(chunk)
+    return chunks
 
 
 def format_context(chunks: List[dict], question: str) -> str:
@@ -280,7 +119,7 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
         )
 
         batch_size = 20
-        all_embeddings = list()
+        index = get_index()
         logger.info("Processing chunks and creating embeddings...")
 
         for i in range(0, len(chunks), batch_size):
@@ -291,7 +130,27 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
                 batch_embeddings = await asyncio.gather(
                     *[embeddings.aembed_query(content) for content in batch_contents]
                 )
-                all_embeddings.extend(batch_embeddings)
+
+                # Prepare vectors for Pinecone upsert
+                vectors = []
+                for j, embedding in enumerate(batch_embeddings):
+                    chunk = batch[j]
+                    vectors.append(
+                        {
+                            "id": f"{chat.github_url}_{i+j}",
+                            "values": embedding,
+                            "metadata": {
+                                "content": chunk["content"],
+                                "file_path": chunk["metadata"]["file_path"],
+                                "type": chunk["metadata"]["type"],
+                                "github_url": chat.github_url,
+                            },
+                        }
+                    )
+
+                # Upsert vectors to Pinecone
+                index.upsert(vectors=vectors)
+
                 setattr(chat, "indexed_chunks", min(i + batch_size, len(chunks)))
                 db.commit()
 
@@ -302,13 +161,6 @@ async def create_embeddings(db: Session, chat_id: str, content: str):
                 logger.error(f"Error processing chunk {i+1}: {str(chunk_error)}")
                 raise
 
-        embedding = Embedding(
-            id=str(uuid.uuid4()),
-            github_url=chat.github_url,
-            chunks=json.dumps(chunks),
-            embedding=json.dumps(all_embeddings),
-        )
-        db.add(embedding)
         setattr(chat, "indexing_status", "completed")
         db.commit()
 
