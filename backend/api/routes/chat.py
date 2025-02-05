@@ -8,7 +8,7 @@ import uuid
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
 import json
-from typing import AsyncGenerator, Dict, Any, cast
+from typing import AsyncGenerator, Dict, Any, cast, List
 from api.rag import format_context, search_embeddings
 from db.pinecone import get_index
 import asyncio
@@ -230,12 +230,19 @@ async def delete_chat(
         if not chat:
             raise HTTPException(status_code=404, detail="Chat not found")
 
+        # Delete vectors from Pinecone
+        index = get_index()
+        list_gen = await asyncio.to_thread(index.list, prefix=str(chat.github_url))
+        list_result = list(list_gen)
+        vector_ids: List[str] = []
+        if list_result:
+            vector_ids = [item for sublist in list_result for item in sublist]
+
+        await asyncio.to_thread(index.delete, ids=vector_ids)
+
+        # Delete chat from database once vectors are deleted
         db.delete(chat)
         db.commit()
-
-        index = get_index()
-        index.delete(filter={"github_url": str(chat.github_url)})
-
         return {"success": True, "message": "Chat deleted", "status": 200}
     except Exception as e:
         print(f"Error deleting chat: {str(e)}")

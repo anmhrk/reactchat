@@ -27,6 +27,7 @@ import {
 } from "../ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import type { ChatStatus } from "~/lib/types";
+import { deleteRepo } from "~/lib/db";
 
 export default function ChatNav({
   userInfo,
@@ -252,6 +253,9 @@ export async function handleDelete(chatId: string, userId: string) {
       },
     );
     const data = (await response.json()) as { message: string; status: number };
+    if (data.status === 200) {
+      await deleteRepo(chatId);
+    }
 
     toast.dismiss();
     toast.success(data.message);

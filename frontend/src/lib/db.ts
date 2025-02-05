@@ -33,3 +33,12 @@ export async function setRepo(
   const db = await initDB();
   return db.put(STORE_NAME, data, chatId);
 }
+
+export async function deleteRepo(chatId: string) {
+  const db = await initDB();
+  const repo = await db.get(STORE_NAME, chatId);
+  if (repo) {
+    // eslint-disable-next-line drizzle/enforce-delete-with-where
+    await db.delete(STORE_NAME, chatId);
+  }
+}
