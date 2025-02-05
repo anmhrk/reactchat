@@ -4,13 +4,15 @@ import LayoutHelper from "~/components/core/layout-helper";
 import type { Metadata } from "next";
 
 type Props = {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   try {
-    const response = await fetch(`${BACKEND_URL}/chat/${params.id}/repo-name`);
+    const response = await fetch(
+      `${BACKEND_URL}/chat/${(await params).id}/repo-name`,
+    );
     if (response.ok) {
       const { repo_name } = (await response.json()) as { repo_name: string };
       return {
@@ -23,7 +25,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   // Fallback
   return {
-    title: `Chat ${params.id} - ReactChat`,
+    title: `Chat ${(await params).id} - ReactChat`,
   };
 }
 
