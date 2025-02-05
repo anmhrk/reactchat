@@ -76,7 +76,7 @@ export function Recents({
         {!isRecentsPage && (
           <Link
             href="/recents"
-            className="flex items-center text-sm text-black/70 transition-colors hover:text-black dark:text-white/80 dark:hover:text-white"
+            className="flex items-center text-sm text-black/70 transition-colors hover:text-black hover:underline dark:text-white/80 dark:hover:text-white"
           >
             View all
             <FaChevronRight className="ml-1 h-3 w-3" />

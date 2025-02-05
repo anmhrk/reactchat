@@ -75,13 +75,13 @@ async def validate(request: IngestValidateRequest, db: Session = Depends(get_db)
             clean_url,
         )
 
-        # Rough estimate of token count
         encoding = tiktoken.get_encoding("cl100k_base")
         token_count = len(encoding.encode(content))
-        if token_count > 300000:
+        # 100k tokens limit for entire repo but adjust as needed
+        if token_count > 100000:
             raise HTTPException(
                 status_code=400,
-                detail="Sorry, repository is too large (>300k tokens)",
+                detail="Sorry, repository is too large (>100k tokens)",
             )
 
         existing_chat = (
