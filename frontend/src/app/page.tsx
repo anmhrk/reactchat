@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { Recents } from "~/components/recents";
 import PageWrapper from "~/components/page-wrapper";
 import type { RecentChat } from "~/lib/types";
+import { serverFetch } from "~/lib/server-fetch";
 
 export default async function HomePage() {
   const { userId } = await auth();
@@ -12,12 +13,11 @@ export default async function HomePage() {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   if (userId) {
-    const response = await fetch(`${BACKEND_URL}/chat/recents`, {
+    const response = await serverFetch(`${BACKEND_URL}/chat/recents`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ user_id: userId }),
     });
 
     if (response.ok) {

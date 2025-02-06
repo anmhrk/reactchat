@@ -9,6 +9,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { useClientFetch } from "~/lib/client-fetch";
 
 export function SearchBar({ userId }: { userId: string | null }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +17,7 @@ export function SearchBar({ userId }: { userId: string | null }) {
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
   const router = useRouter();
+  const clientFetch = useClientFetch();
 
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -33,12 +35,12 @@ export function SearchBar({ userId }: { userId: string | null }) {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/ingest/validate`, {
+      const response = await clientFetch(`${BACKEND_URL}/ingest/validate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url, user_id: userId }),
+        body: JSON.stringify({ url }),
       });
 
       const data = (await response.json()) as {

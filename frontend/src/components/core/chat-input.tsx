@@ -9,10 +9,9 @@ import { useParams } from "next/navigation";
 import type { Message } from "./chat";
 import type { SelectedContext } from "./layout-helper";
 import { X } from "lucide-react";
-import type { UserInfo } from "~/lib/types";
+import { useClientFetch } from "~/lib/client-fetch";
 
 export default function ChatInput({
-  userInfo,
   model,
   onNewMessage,
   isStreaming,
@@ -20,7 +19,6 @@ export default function ChatInput({
   selectedContext,
   setSelectedContext,
 }: {
-  userInfo: UserInfo;
   model: string;
   onNewMessage: (message: Message) => void;
   isStreaming: boolean;
@@ -34,6 +32,7 @@ export default function ChatInput({
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const params = useParams<{ id: string }>();
   const chatId = params.id;
+  const clientFetch = useClientFetch();
 
   useEffect(() => {
     textareaRef.current?.focus();
@@ -76,18 +75,20 @@ export default function ChatInput({
     onNewMessage({ id: assistantMessageId, content: "", role: "assistant" });
 
     try {
-      const response = await fetch(`${BACKEND_URL}/chat/${chatId}/message`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await clientFetch(
+        `${BACKEND_URL}/chat/${chatId}/message`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: input,
+            model,
+            selected_context: selectedContext,
+          }),
         },
-        body: JSON.stringify({
-          user_id: userInfo.id,
-          message: input,
-          model,
-          selected_context: selectedContext,
-        }),
-      });
+      );
       if (!response.ok) {
         throw new Error("Failed to send message");
       }

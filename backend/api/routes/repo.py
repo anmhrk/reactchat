@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from sqlalchemy.orm import Session
 from db.models import Chat
 from db.config import get_db
@@ -66,7 +66,8 @@ router = APIRouter()
 
 
 @router.get("/repo/{chat_id}")
-async def get_repo(chat_id: str, user_id: str, db: Session = Depends(get_db)):
+async def get_repo(request: Request, chat_id: str, db: Session = Depends(get_db)):
+    user_id = request.state.user_id
     chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")

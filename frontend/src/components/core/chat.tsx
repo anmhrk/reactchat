@@ -13,6 +13,7 @@ import type { ChatStatus } from "~/lib/types";
 import { getRepo } from "~/lib/db";
 import Link from "next/link";
 import { useIsMobile } from "~/hooks/use-mobile";
+import { useClientFetch } from "~/lib/client-fetch";
 
 export type Message = {
   id?: string;
@@ -47,10 +48,11 @@ export default function Chat({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [repoName, setRepoName] = useState("");
   const isMobile = useIsMobile();
+  const clientFetch = useClientFetch();
 
   useEffect(() => {
     const fetchMessages = async () => {
-      const response = await fetch(
+      const response = await clientFetch(
         `${BACKEND_URL}/chat/${chatId}/fetch/messages`,
       );
 
@@ -78,7 +80,7 @@ export default function Chat({
 
     void getRepoName();
     void fetchMessages();
-  }, [chatId, BACKEND_URL, userInfo.id]);
+  }, [chatId, BACKEND_URL, clientFetch]);
 
   const handleNewMessage = useCallback((message: Message) => {
     setMessages((prevMessages) => {
@@ -140,7 +142,6 @@ export default function Chat({
             <Messages messages={messages} isStreaming={isStreaming} />
           </ScrollArea>
           <ChatInput
-            userInfo={userInfo}
             model={model}
             onNewMessage={handleNewMessage}
             isStreaming={isStreaming}

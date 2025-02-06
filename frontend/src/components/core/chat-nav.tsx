@@ -28,6 +28,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import type { ChatStatus } from "~/lib/types";
 import { deleteRepo } from "~/lib/db";
+import { useClientFetch } from "~/lib/client-fetch";
 
 export default function ChatNav({
   userInfo,
@@ -49,13 +50,16 @@ export default function ChatNav({
   const params = useParams<{ id: string }>();
   const chatId = params.id;
   const router = useRouter();
+  const handleBookmark = useHandleBookmark();
+  const handleDelete = useHandleDelete();
+
   const MENU_ITEMS = [
     chatStatus.is_bookmarked
       ? {
           icon: <LuBookmarkX className="!h-5 !w-5" />,
           label: "Unbookmark",
           onClick: async () => {
-            await handleBookmark(chatId, userInfo.id!);
+            await handleBookmark(chatId);
             setChatStatus({
               is_bookmarked: false,
             });
@@ -65,7 +69,7 @@ export default function ChatNav({
           icon: <LuBookmarkCheck className="!h-5 !w-5" />,
           label: "Bookmark",
           onClick: async () => {
-            await handleBookmark(chatId, userInfo.id!);
+            await handleBookmark(chatId);
             setChatStatus({
               is_bookmarked: true,
             });
@@ -77,7 +81,7 @@ export default function ChatNav({
       className:
         "text-red-600 hover:bg-red-50 hover:text-red-700 focus:bg-red-50 focus:text-red-700 dark:text-red-400 dark:hover:bg-red-950/50 dark:hover:text-red-300 dark:focus:bg-red-950/50 dark:focus:text-red-300",
       onClick: async () => {
-        await handleDelete(chatId, userInfo.id!);
+        await handleDelete(chatId);
         router.push("/");
       },
     },
@@ -207,60 +211,59 @@ export default function ChatNav({
   );
 }
 
-export async function handleBookmark(chatId: string, userId: string) {
-  try {
-    if (!userId) {
-      throw new Error("User ID is required");
-    }
+export function useHandleBookmark() {
+  const clientFetch = useClientFetch();
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/bookmark`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+  return async (chatId: string) => {
+    try {
+      const response = await clientFetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/bookmark`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-        body: JSON.stringify({
-          user_id: userId,
-        }),
-      },
-    );
-    const data = (await response.json()) as { message: string; status: number };
+      );
+      const data = (await response.json()) as {
+        message: string;
+        status: number;
+      };
 
-    toast.success(data.message);
-  } catch (error) {
-    toast.error((error as Error).message);
-  }
+      toast.success(data.message);
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
 }
+export function useHandleDelete() {
+  const clientFetch = useClientFetch();
 
-export async function handleDelete(chatId: string, userId: string) {
-  try {
-    if (!userId) {
-      throw new Error("User ID is required");
-    }
-
-    toast.loading("Deleting chat...");
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/delete`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+  return async (chatId: string) => {
+    try {
+      toast.loading("Deleting chat...");
+      const response = await clientFetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/chat/${chatId}/delete`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
         },
-        body: JSON.stringify({
-          user_id: userId,
-        }),
-      },
-    );
-    const data = (await response.json()) as { message: string; status: number };
-    if (data.status === 200) {
-      await deleteRepo(chatId);
-    }
+      );
+      const data = (await response.json()) as {
+        message: string;
+        status: number;
+      };
+      if (data.status === 200) {
+        await deleteRepo(chatId);
+      }
 
-    toast.dismiss();
-    toast.success(data.message);
-  } catch (error) {
-    toast.dismiss();
-    toast.error((error as Error).message);
-  }
+      toast.dismiss();
+      toast.success(data.message);
+    } catch (error) {
+      toast.dismiss();
+      toast.error((error as Error).message);
+    }
+  };
 }

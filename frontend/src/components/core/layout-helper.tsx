@@ -8,6 +8,7 @@ import FileTree from "./file-tree";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Progress } from "~/components/ui/progress";
+import { useClientFetch } from "~/lib/client-fetch";
 
 const POLL_INTERVAL = 1000; // poll every second
 
@@ -33,6 +34,7 @@ export default function LayoutHelper({
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const [showFileTreeAndCode, setShowFileTreeAndCode] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const clientFetch = useClientFetch();
 
   useEffect(() => {
     const res = window.localStorage.getItem(`${chatId}-showFileTreeAndCode`);
@@ -46,8 +48,8 @@ export default function LayoutHelper({
 
   const pollIndexingStatus = useCallback(async () => {
     try {
-      const response = await fetch(
-        `${BACKEND_URL}/ingest/${chatId}/status?user_id=${userInfo.id}`,
+      const response = await clientFetch(
+        `${BACKEND_URL}/ingest/${chatId}/status`,
       );
       const data = (await response.json()) as {
         status: IngestStatus;
@@ -69,20 +71,22 @@ export default function LayoutHelper({
       console.log(error);
       setIndexingStatus("failed");
     }
-  }, [BACKEND_URL, chatId, userInfo.id]);
+  }, [BACKEND_URL, chatId, clientFetch]);
 
   useEffect(() => {
     if (indexingStatus === "not_started") {
       const startIndexing = async () => {
         try {
           setIndexingStatus("in_progress");
-          const response = await fetch(`${BACKEND_URL}/ingest/${chatId}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+          const response = await clientFetch(
+            `${BACKEND_URL}/ingest/${chatId}`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
             },
-            body: JSON.stringify({ user_id: userInfo.id }),
-          });
+          );
 
           const data = (await response.json()) as { status: IngestStatus };
 
@@ -109,7 +113,7 @@ export default function LayoutHelper({
         clearTimeout(pollingRef.current);
       }
     };
-  }, [indexingStatus, BACKEND_URL, chatId, pollIndexingStatus, userInfo.id]);
+  }, [indexingStatus, BACKEND_URL, chatId, pollIndexingStatus, clientFetch]);
 
   if (isLoading) {
     return null;
@@ -120,7 +124,7 @@ export default function LayoutHelper({
       <main className="flex h-screen">
         {showFileTreeAndCode ? (
           <>
-            <FileTree userInfo={userInfo} />
+            <FileTree />
             <Code setSelectedContext={setSelectedContext} />
             <Chat
               showFileTreeAndCode={showFileTreeAndCode}

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from api.middleware import ClerkAuthMiddleware
 from dotenv import load_dotenv
 import os
 
@@ -37,6 +38,8 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         content={"error": error_message},
     )
 
+
+app.add_middleware(ClerkAuthMiddleware)
 
 app.include_router(auth.router)
 app.include_router(ingest.router)

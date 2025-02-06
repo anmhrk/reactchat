@@ -2,6 +2,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import type { ChatStatus, IngestStatus, UserInfo } from "~/lib/types";
 import LayoutHelper from "~/components/core/layout-helper";
 import type { Metadata } from "next";
+import { serverFetch } from "~/lib/server-fetch";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -10,7 +11,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   try {
-    const response = await fetch(
+    const response = await serverFetch(
       `${BACKEND_URL}/chat/${(await params).id}/repo-name`,
     );
     if (response.ok) {
@@ -45,9 +46,7 @@ export default async function Page({
   const chatId = (await params).id;
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-  const chat = await fetch(
-    `${BACKEND_URL}/chat/${chatId}/validate?user_id=${user?.id}`,
-  );
+  const chat = await serverFetch(`${BACKEND_URL}/chat/${chatId}/validate`);
 
   if (!chat.ok) {
     if (chat.status === 404) {
@@ -61,8 +60,8 @@ export default async function Page({
   const chatStatus = (await chat.json()) as ChatStatus;
 
   // Fetch indexing status on server
-  const statusResponse = await fetch(
-    `${BACKEND_URL}/ingest/${chatId}/status?user_id=${user?.id}`,
+  const statusResponse = await serverFetch(
+    `${BACKEND_URL}/ingest/${chatId}/status`,
   );
   const { status } = (await statusResponse.json()) as { status: IngestStatus };
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -6,30 +6,27 @@ from db.config import get_db
 from db.models import Chat, ChatMessage
 import uuid
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_anthropic import ChatAnthropic
 import json
 from typing import AsyncGenerator, Dict, Any, cast, List
 from api.rag import format_context, search_embeddings
 from db.pinecone import get_index
 import asyncio
 
+# from langchain_anthropic import ChatAnthropic
+
 router = APIRouter()
 
 
-class UserRequestBody(BaseModel):
-    user_id: str
-
-
 class ChatMessageRequest(BaseModel):
-    user_id: str
     message: str
     model: str
     selected_context: dict | None
 
 
 @router.post("/chat/recents")
-async def get_recents(request: UserRequestBody, db: Session = Depends(get_db)):
-    chats = db.query(Chat).filter(Chat.user_id == request.user_id).all()
+async def get_recents(request: Request, db: Session = Depends(get_db)):
+    user_id = request.state.user_id
+    chats = db.query(Chat).filter(Chat.user_id == user_id).all()
     return {
         "chats": [
             {
@@ -44,7 +41,8 @@ async def get_recents(request: UserRequestBody, db: Session = Depends(get_db)):
 
 
 @router.get("/chat/{chat_id}/validate")
-async def validate_chat(chat_id: str, user_id: str, db: Session = Depends(get_db)):
+async def validate_chat(request: Request, chat_id: str, db: Session = Depends(get_db)):
+    user_id = request.state.user_id
     chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
@@ -58,13 +56,13 @@ async def validate_chat(chat_id: str, user_id: str, db: Session = Depends(get_db
 
 @router.post("/chat/{chat_id}/message")
 async def send_chat_message(
-    chat_id: str, request: ChatMessageRequest, db: Session = Depends(get_db)
+    request: Request,
+    message_request: ChatMessageRequest,
+    chat_id: str,
+    db: Session = Depends(get_db),
 ):
-    chat = (
-        db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
-        .first()
-    )
+    user_id = request.state.user_id
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
@@ -82,14 +80,17 @@ async def send_chat_message(
         raise HTTPException(status_code=400, detail="Chat repository not indexed")
 
     embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
-    question_embedding = await embeddings.aembed_query(request.message)
+    question_embedding = await embeddings.aembed_query(message_request.message)
 
     try:
         relevant_chunks = await search_embeddings(question_embedding)
-        context = format_context(relevant_chunks, request.message)
+        context = format_context(relevant_chunks, message_request.message)
 
         user_message = ChatMessage(
-            id=str(uuid.uuid4()), chat_id=chat_id, message=request.message, role="user"
+            id=str(uuid.uuid4()),
+            chat_id=chat_id,
+            message=message_request.message,
+            role="user",
         )
         db.add(user_message)
         db.commit()
@@ -120,25 +121,27 @@ async def send_chat_message(
         Never mention "available code context" or "codebase context", "filetree", "code snippets" or anything along those lines in your response.
         """
 
-        if "claude" in request.model.lower():
-            chat_model = ChatAnthropic(
-                model_name=request.model,
-                temperature=0,
-                streaming=True,
-                timeout=10,
-                stop=None,
-            )
-        else:
-            chat_model = ChatOpenAI(model=request.model, temperature=0, streaming=True)
+        # if "claude" in message_request.model.lower():
+        #     chat_model = ChatAnthropic(
+        #         model_name=message_request.model,
+        #         temperature=0,
+        #         streaming=True,
+        #         timeout=10,
+        #         stop=None,
+        #     )
+        # else:
+        chat_model = ChatOpenAI(
+            model=message_request.model, temperature=0, streaming=True
+        )
 
         messages = [
             {"role": "system", "content": system_prompt},
             {
                 "role": "user",
                 "content": f"""Available code context from the codebase: {context}
-                User-selected code snippet(s): {request.selected_context if request.selected_context else "None"}
+                User-selected code snippet(s): {message_request.selected_context if message_request.selected_context else "None"}
 
-                User's question: {request.message}
+                User's question: {message_request.message}
 
                 This is extra information about the codebase which contains the filetree, package.json, and README.md: {chat.repo_info}
 
@@ -198,14 +201,9 @@ async def get_chat_messages(chat_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/chat/{chat_id}/bookmark")
-async def bookmark_chat(
-    chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
-):
-    chat = (
-        db.query(Chat)
-        .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
-        .first()
-    )
+async def bookmark_chat(request: Request, chat_id: str, db: Session = Depends(get_db)):
+    user_id = request.state.user_id
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 
@@ -217,14 +215,11 @@ async def bookmark_chat(
 
 
 @router.post("/chat/{chat_id}/delete")
-async def delete_chat(
-    chat_id: str, request: UserRequestBody, db: Session = Depends(get_db)
-):
+async def delete_chat(request: Request, chat_id: str, db: Session = Depends(get_db)):
+    user_id = request.state.user_id
     try:
         chat = (
-            db.query(Chat)
-            .filter(Chat.id == chat_id, Chat.user_id == request.user_id)
-            .first()
+            db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
         )
 
         if not chat:
@@ -251,8 +246,11 @@ async def delete_chat(
 
 
 @router.get("/chat/{chat_id}/repo-name")
-async def fetch_repo_name(chat_id: str, db: Session = Depends(get_db)):
-    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+async def fetch_repo_name(
+    request: Request, chat_id: str, db: Session = Depends(get_db)
+):
+    user_id = request.state.user_id
+    chat = db.query(Chat).filter(Chat.id == chat_id, Chat.user_id == user_id).first()
     if not chat:
         raise HTTPException(status_code=404, detail="Chat not found")
 

@@ -9,16 +9,16 @@ import { Skeleton } from "~/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
 import Link from "next/link";
 import { FaReact } from "react-icons/fa";
-import type { UserInfo } from "~/lib/types";
+import { useClientFetch } from "~/lib/client-fetch";
 
-export default function FileTree({ userInfo }: { userInfo: UserInfo }) {
+export default function FileTree() {
   const [tree, setTree] = useState<FileNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const file = searchParams.get("file");
-
+  const clientFetch = useClientFetch();
   const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   useEffect(() => {
@@ -34,8 +34,8 @@ export default function FileTree({ userInfo }: { userInfo: UserInfo }) {
           return;
         }
 
-        const response = await fetch(
-          `${BACKEND_URL}/repo/${decodeURIComponent(params.id)}?user_id=${userInfo.id}`,
+        const response = await clientFetch(
+          `${BACKEND_URL}/repo/${decodeURIComponent(params.id)}`,
         );
 
         const data = (await response.json()) as {
@@ -53,7 +53,7 @@ export default function FileTree({ userInfo }: { userInfo: UserInfo }) {
     }
 
     void loadRepo();
-  }, [params.id, BACKEND_URL, userInfo.id]);
+  }, [params.id, BACKEND_URL, clientFetch]);
 
   function buildTree(files: { path: string; content: string }[]) {
     const root: FileNode[] = [];

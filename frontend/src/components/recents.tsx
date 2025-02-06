@@ -12,7 +12,7 @@ import { IoSearchOutline } from "react-icons/io5";
 import { Button } from "~/components/ui/button";
 import { FiDelete } from "react-icons/fi";
 import { LuBookmarkX, LuBookmarkCheck } from "react-icons/lu";
-import { handleBookmark, handleDelete } from "./core/chat-nav";
+import { useHandleBookmark, useHandleDelete } from "./core/chat-nav";
 import { Checkbox } from "./ui/checkbox";
 import {
   Tooltip,
@@ -144,7 +144,6 @@ export function Recents({
 function ChatCard({
   chats,
   search,
-  userId,
   setChats,
 }: {
   chats: RecentChat[];
@@ -152,6 +151,9 @@ function ChatCard({
   userId: string | null;
   setChats: (chats: RecentChat[]) => void;
 }) {
+  const handleDelete = useHandleDelete();
+  const handleBookmark = useHandleBookmark();
+
   return (
     <div className="flex flex-col gap-5">
       {chats
@@ -179,7 +181,7 @@ function ChatCard({
                       className="h-8 w-8 p-0 text-zinc-600 hover:!bg-zinc-100 dark:text-zinc-300 dark:hover:!bg-zinc-800"
                       onClick={async (e) => {
                         e.preventDefault();
-                        await handleBookmark(chat.id, userId!);
+                        await handleBookmark(chat.id);
                         setChats(
                           chats.map((c) =>
                             c.id === chat.id
@@ -208,7 +210,7 @@ function ChatCard({
                       className="h-8 w-8 p-0 text-red-600 hover:!bg-zinc-100 hover:text-red-700 dark:text-red-400 dark:hover:!bg-zinc-800 dark:hover:text-red-300"
                       onClick={async (e) => {
                         e.preventDefault();
-                        await handleDelete(chat.id, userId!);
+                        await handleDelete(chat.id);
                         window.location.reload();
                       }}
                     >
