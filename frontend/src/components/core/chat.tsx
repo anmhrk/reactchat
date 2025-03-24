@@ -12,8 +12,9 @@ import type { SelectedContext } from "./layout-helper";
 import type { ChatStatus } from "~/lib/types";
 import { getRepo } from "~/lib/db";
 import Link from "next/link";
-import { useIsMobile } from "~/hooks/use-mobile";
+import { useIsMobile } from "~/hooks/useIsMobile";
 import { useClientFetch } from "~/lib/client-fetch";
+import { BACKEND_URL } from "~/constants";
 
 export type Message = {
   id?: string;
@@ -42,7 +43,6 @@ export default function Chat({
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isStreaming, setIsStreaming] = useState(false);
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const params = useParams<{ id: string }>();
   const chatId = params.id;
   const scrollAreaRef = useRef<HTMLDivElement>(null);

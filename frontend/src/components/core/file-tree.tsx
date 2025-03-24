@@ -10,6 +10,7 @@ import { ScrollArea, ScrollBar } from "~/components/ui/scroll-area";
 import Link from "next/link";
 import { FaReact } from "react-icons/fa";
 import { useClientFetch } from "~/lib/client-fetch";
+import { BACKEND_URL } from "~/constants";
 
 export default function FileTree() {
   const [tree, setTree] = useState<FileNode[]>([]);
@@ -19,7 +20,6 @@ export default function FileTree() {
   const searchParams = useSearchParams();
   const file = searchParams.get("file");
   const clientFetch = useClientFetch();
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   useEffect(() => {
     async function loadRepo() {

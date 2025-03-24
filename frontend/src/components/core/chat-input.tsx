@@ -10,6 +10,7 @@ import type { Message } from "./chat";
 import type { SelectedContext } from "./layout-helper";
 import { X } from "lucide-react";
 import { useClientFetch } from "~/lib/client-fetch";
+import { BACKEND_URL } from "~/constants";
 
 export default function ChatInput({
   model,
@@ -29,7 +30,6 @@ export default function ChatInput({
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
   const params = useParams<{ id: string }>();
   const chatId = params.id;
   const clientFetch = useClientFetch();

@@ -3,54 +3,10 @@
 import { useState, useEffect } from "react";
 import type { FileNode } from "~/lib/types";
 import { FaChevronRight } from "react-icons/fa";
-import {
-  FaFolder,
-  FaFolderOpen,
-  FaFile,
-  FaInfoCircle,
-  FaGitAlt,
-  FaHtml5,
-  FaCss3,
-} from "react-icons/fa";
-import { SiTypescript, SiJavascript, SiNextdotjs } from "react-icons/si";
-import { IoIosSettings } from "react-icons/io";
-import { FaReact } from "react-icons/fa";
-import { VscJson } from "react-icons/vsc";
+import { FaFolder, FaFolderOpen, FaFile } from "react-icons/fa";
 import { cn } from "~/lib/utils";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-
-const ICON_MAP = {
-  ".ts": SiTypescript,
-  ".tsx": FaReact,
-  ".js": SiJavascript,
-  ".mjs": SiJavascript,
-  ".cjs": SiJavascript,
-  ".jsx": FaReact,
-  ".json": VscJson,
-  ".md": FaInfoCircle,
-  ".gitignore": FaGitAlt,
-  ".html": FaHtml5,
-  "next.config.ts": SiNextdotjs,
-  "next.config.js": SiNextdotjs,
-  ".css": FaCss3,
-  ".env.example": IoIosSettings,
-};
-
-const ICON_COLORS = {
-  ".ts": "text-[#0088D1]",
-  ".tsx": "text-[#58C4DC]",
-  ".js": "text-[#FFCA27]",
-  ".mjs": "text-[#FFCA27]",
-  ".cjs": "text-[#FFCA27]",
-  ".jsx": "text-[#58C4DC]",
-  ".json": "text-black dark:text-white/80",
-  ".md": "text-[#42A5F5]",
-  ".gitignore": "text-[#E64A19]",
-  ".html": "text-[#FFCA27]",
-  "next.config.ts": "dark:text-[#CFD8DB] text-black/80",
-  "next.config.js": "dark:text-[#CFD8DB] text-black/80",
-  ".css": "text-[#42A5F5]",
-};
+import { ICON_MAP, ICON_COLORS } from "~/constants";
 
 export default function FileTreeItem({
   node,

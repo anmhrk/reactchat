@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { Progress } from "~/components/ui/progress";
 import { useClientFetch } from "~/lib/client-fetch";
+import { BACKEND_URL } from "~/constants";
 
 const POLL_INTERVAL = 1000; // poll every second
 
@@ -30,8 +31,7 @@ export default function LayoutHelper({
   const [chatStatus, setChatStatus] = useState<ChatStatus>(initialChatStatus);
   const params = useParams<{ id: string }>();
   const chatId = params.id;
-  const pollingRef = useRef<NodeJS.Timeout>();
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const pollingRef = useRef<NodeJS.Timeout>(undefined);
   const [showFileTreeAndCode, setShowFileTreeAndCode] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const clientFetch = useClientFetch();

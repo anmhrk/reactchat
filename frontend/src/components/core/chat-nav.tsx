@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import type { ChatStatus } from "~/lib/types";
 import { deleteRepo } from "~/lib/db";
 import { useClientFetch } from "~/lib/client-fetch";
+import { MODEL_OPTIONS } from "~/constants";
 
 export default function ChatNav({
   userInfo,
@@ -84,18 +85,6 @@ export default function ChatNav({
         await handleDelete(chatId);
         router.push("/");
       },
-    },
-  ];
-
-  const MODEL_OPTIONS = [
-    {
-      name: "GPT-4o",
-      value: "gpt-4o",
-    },
-    {
-      name: "Claude 3.5 Sonnet",
-      value: "claude-3-5-sonnet-20241022",
-      disabled: true,
     },
   ];
 

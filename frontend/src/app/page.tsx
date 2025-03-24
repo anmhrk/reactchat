@@ -5,12 +5,12 @@ import { Recents } from "~/components/recents";
 import PageWrapper from "~/components/page-wrapper";
 import type { RecentChat } from "~/lib/types";
 import { serverFetch } from "~/lib/server-fetch";
+import { BACKEND_URL } from "~/constants";
 
 export default async function HomePage() {
   const { userId } = await auth();
 
   let chats: RecentChat[] = [];
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   if (userId) {
     const response = await serverFetch(`${BACKEND_URL}/chat/recents`, {

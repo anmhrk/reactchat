@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useClientFetch } from "~/lib/client-fetch";
+import { BACKEND_URL } from "~/constants";
 
 export function SearchBar({ userId }: { userId: string | null }) {
   const [isLoading, setIsLoading] = useState(false);
@@ -18,8 +19,6 @@ export function SearchBar({ userId }: { userId: string | null }) {
   const isDarkMode = theme === "dark";
   const router = useRouter();
   const clientFetch = useClientFetch();
-
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
