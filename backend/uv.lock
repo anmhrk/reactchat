@@ -81,7 +81,6 @@ dependencies = [
     { name = "pinecone" },
     { name = "psycopg2-binary" },
     { name = "svix" },
-    { name = "tiktoken" },
     { name = "uvicorn" },
 ]
 
@@ -98,7 +97,6 @@ requires-dist = [
     { name = "pinecone", specifier = ">=6.0.2" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "svix", specifier = ">=1.62.0" },
-    { name = "tiktoken", specifier = ">=0.9.0" },
     { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 

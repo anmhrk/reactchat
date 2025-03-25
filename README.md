@@ -22,7 +22,7 @@ a chat app that allows users to understand and chat with any open source React a
 
 ## how to run locally
 
-1. make sure you have [bun](https://bun.sh) and [uv](https://docs.astral.sh/uv/) installed
+1. make sure you have [bun](https://bun.sh), [uv](https://docs.astral.sh/uv/), and [ngrok](https://ngrok.com/) installed
 
 2. clone the repo
 
@@ -59,23 +59,29 @@ alembic upgrade head
 uvicorn main:app --reload
 ```
 
-6. setup frontend
+6. expose backend server so it can be used by the clerk webhook. add the ngrok url to the clerk webhook url in the clerk dashboard.
+
+```bash
+ngrok http 8000
+```
+
+7. setup frontend
 
 ```bash
 cd frontend
 bun install
 ```
 
-7. copy .env.example to .env and set the env variables
+8. copy .env.example to .env and set the env variables
 
 ```bash
 cp .env.example .env
 ```
 
-8. start frontend server
+9. start frontend server
 
 ```bash
 bun dev
 ```
 
-9. navigate to http://localhost:3000 in your browser and see the app live
+10. navigate to http://localhost:3000 in your browser and see the app live

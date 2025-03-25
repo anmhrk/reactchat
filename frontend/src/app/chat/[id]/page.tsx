@@ -3,6 +3,7 @@ import type { ChatStatus, IngestStatus, UserInfo } from "~/lib/types";
 import LayoutHelper from "~/components/core/layout-helper";
 import type { Metadata } from "next";
 import { serverFetch } from "~/lib/server-fetch";
+import { redirect } from "next/navigation";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -36,6 +37,11 @@ export default async function Page({
   params: Promise<{ id: string }>;
 }) {
   const user = await currentUser();
+
+  if (!user) {
+    redirect("/");
+  }
+
   const userInfo: UserInfo = {
     id: user?.id ?? null,
     fullName: user?.fullName ?? null,

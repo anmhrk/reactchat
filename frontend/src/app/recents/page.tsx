@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import PageWrapper from "~/components/page-wrapper";
 import { Recents } from "~/components/recents";
 import { serverFetch } from "~/lib/server-fetch";
@@ -22,6 +23,8 @@ export default async function RecentsPage() {
       const data = (await response.json()) as { chats: RecentChat[] };
       chats = data.chats;
     }
+  } else {
+    redirect("/");
   }
 
   return (
