@@ -1,8 +1,8 @@
 {
   "python.analysis.autoImportCompletions": true,
   "python.analysis.typeCheckingMode": "basic",
-  "python.defaultInterpreterPath": "${workspaceFolder}/backend/venv/bin/python3.13",
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python3.13",
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/backend/venv/lib/python3.13/site-packages"
+    "${workspaceFolder}/backend/.venv/lib/python3.13/site-packages"
   ]
 }

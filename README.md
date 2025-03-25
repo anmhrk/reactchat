@@ -16,7 +16,7 @@ a chat app that allows users to understand and chat with any open source React a
 - **backend**: fastapi, uvicorn
 - **auth**: clerk
 - **database**: sqlalchemy, neon postgres, alembic for migrations
-- **llm**: openai gpt-4o, claude 3.5 sonnet
+- **llm**: openai gpt-4o, claude 3.7 sonnet
 - **rag**: langchain, pinecone as vector store
 - **embeddings**: openai text-embedding-3-large
 
@@ -38,7 +38,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-3. copy .env.example to .env and set the env variables in backend/.env
+3. copy .env.example to .env and set the env variables
+
+```bash
+cp .env.example .env
+```
 
 4. database setup
 
@@ -60,7 +64,11 @@ cd frontend
 bun install
 ```
 
-7. copy .env.example to .env and set the env variables in frontend/.env
+7. copy .env.example to .env and set the env variables
+
+```bash
+cp .env.example .env
+```
 
 8. start frontend server
 
