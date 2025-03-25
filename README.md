@@ -22,7 +22,9 @@ a chat app that allows users to understand and chat with any open source React a
 
 ## how to run locally
 
-1. clone the repo
+1. make sure you have [bun](https://bun.sh) and [uv](https://docs.astral.sh/uv/) installed
+
+2. clone the repo
 
 ```bash
 git clone https://github.com/anmhrk/reactchat.git
@@ -33,9 +35,9 @@ cd reactchat
 
 ```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+uv venv .venv
+source .venv/bin/activate
+uv sync
 ```
 
 3. copy .env.example to .env and set the env variables
@@ -76,4 +78,4 @@ cp .env.example .env
 bun dev
 ```
 
-9. open http://localhost:3000 and see the app live in your browser
+9. navigate to http://localhost:3000 in your browser and see the app live
