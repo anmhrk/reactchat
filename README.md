@@ -16,7 +16,7 @@ a chat app that allows users to understand and chat with any open source React a
 - **backend**: fastapi, uvicorn
 - **auth**: clerk
 - **database**: sqlalchemy, neon postgres, alembic for migrations
-- **llm**: openai gpt-4o, claude 3.7 sonnet
+- **llm**: openai gpt-4o, claude 3.5 sonnet
 - **rag**: langchain, pinecone as vector store
 - **embeddings**: openai text-embedding-3-large
 
@@ -43,7 +43,7 @@ uv sync
 3. copy .env.example to .env and set the env variables
 
 ```bash
-cp .env.example .env
+cp .env.example .env # leave the CLERK_WEBHOOK_SECRET empty for now
 ```
 
 4. database setup
@@ -59,7 +59,7 @@ alembic upgrade head
 uvicorn main:app --reload
 ```
 
-6. expose backend server so it can be used by the clerk webhook. add the ngrok url to the clerk webhook url in the clerk dashboard.
+6. expose backend server so it can be used by the clerk webhook. add the ngrok url to the clerk webhook url in the clerk dashboard. then copy the webhook secret and add it to the .env file.
 
 ```bash
 ngrok http 8000
